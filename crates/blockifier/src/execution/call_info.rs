@@ -88,6 +88,7 @@ struct ExecutionResourcesDef {
 }
 
 /// Represents the full effects of executing an entry point, including the inner calls it invoked.
+#[cfg_attr(test, derive(Clone))]
 #[derive(Debug, Default, Eq, PartialEq, Serialize)]
 pub struct CallInfo {
     pub call: CallEntryPoint,
