@@ -23,7 +23,7 @@ macro_rules! retdata {
     };
 }
 
-#[cfg_attr(test, derive(Clone))]
+#[cfg_attr(any(test, feature = "testing"), derive(Clone))]
 #[derive(Debug, Default, Eq, PartialEq, Serialize)]
 pub struct OrderedEvent {
     pub order: usize,
@@ -53,14 +53,14 @@ impl MessageL1CostInfo {
     }
 }
 
-#[cfg_attr(test, derive(Clone))]
+#[cfg_attr(any(test, feature = "testing"), derive(Clone))]
 #[derive(Debug, Default, Eq, PartialEq, Serialize)]
 pub struct MessageToL1 {
     pub to_address: EthAddress,
     pub payload: L2ToL1Payload,
 }
 
-#[cfg_attr(test, derive(Clone))]
+#[cfg_attr(any(test, feature = "testing"), derive(Clone))]
 #[derive(Debug, Default, Eq, PartialEq, Serialize)]
 pub struct OrderedL2ToL1Message {
     pub order: usize,
@@ -68,7 +68,7 @@ pub struct OrderedL2ToL1Message {
 }
 
 /// Represents the effects of executing a single entry point.
-#[cfg_attr(test, derive(Clone))]
+#[cfg_attr(any(test, feature = "testing"), derive(Clone))]
 #[derive(Debug, Default, Eq, PartialEq, Serialize)]
 pub struct CallExecution {
     pub retdata: Retdata,
@@ -88,7 +88,7 @@ struct ExecutionResourcesDef {
 }
 
 /// Represents the full effects of executing an entry point, including the inner calls it invoked.
-#[cfg_attr(test, derive(Clone))]
+#[cfg_attr(any(test, feature = "testing"), derive(Clone))]
 #[derive(Debug, Default, Eq, PartialEq, Serialize)]
 pub struct CallInfo {
     pub call: CallEntryPoint,
