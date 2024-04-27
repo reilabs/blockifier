@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
@@ -109,5 +107,5 @@ pub trait State: StateReader {
     /// Marks the given set of PC values as visited for the given class hash.
     // TODO(lior): Once we have a BlockResources object, move this logic there. Make sure reverted
     //   entry points do not affect the final set of PCs.
-    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &HashSet<usize>);
+    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &Vec<usize>);
 }

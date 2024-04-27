@@ -14,6 +14,7 @@ use crate::abi::constants;
 use crate::context::{BlockContext, TransactionContext};
 use crate::execution::call_info::CallInfo;
 use crate::execution::common_hints::ExecutionMode;
+use crate::execution::contract_class::ContractClass;
 use crate::execution::errors::{EntryPointExecutionError, PreExecutionError};
 use crate::execution::execution_utils::execute_entry_point_call;
 use crate::state::state_api::State;
@@ -58,6 +59,7 @@ pub struct CallEntryPoint {
 }
 
 impl CallEntryPoint {
+    #[track_caller]
     pub fn execute(
         mut self,
         state: &mut dyn State,
@@ -95,6 +97,13 @@ impl CallEntryPoint {
         self.class_hash = Some(class_hash);
         let contract_class = state.get_compiled_contract_class(class_hash)?;
 
+        let caller_location = std::panic::Location::caller();
+        //let caller_line_number = caller_location.line();
+        println!("execute_entry_point_call {:?} {:?}", class_hash, caller_location.file());
+        match contract_class.clone() {
+            ContractClass::V1(_v1) => (),
+            _ => (),
+        }
         execute_entry_point_call(self, contract_class, state, resources, context).map_err(|error| {
             let vm_trace = error.try_to_vm_trace();
             match error {

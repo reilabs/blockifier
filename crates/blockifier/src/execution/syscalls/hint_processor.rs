@@ -281,6 +281,7 @@ impl<'a> SyscallHintProcessor<'a> {
         let get_gas_cost = |name: &str| -> u64 { self.context.get_gas_cost(name) };
         match selector {
             SyscallSelector::CallContract => {
+                println!("execute_next_syscall CallContract");
                 self.execute_syscall(vm, call_contract, get_gas_cost("call_contract_gas_cost"))
             }
             SyscallSelector::Deploy => {
@@ -301,6 +302,7 @@ impl<'a> SyscallHintProcessor<'a> {
                 self.execute_syscall(vm, keccak, get_gas_cost("keccak_gas_cost"))
             }
             SyscallSelector::LibraryCall => {
+                println!("execute_next_syscall LibraryCall");
                 self.execute_syscall(vm, library_call, get_gas_cost("library_call_gas_cost"))
             }
             SyscallSelector::LibraryCallL1Handler => self.execute_syscall(

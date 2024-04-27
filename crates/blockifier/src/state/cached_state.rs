@@ -33,7 +33,7 @@ pub struct CachedState<S: StateReader> {
     // Invariant: managed by CachedState.
     global_class_hash_to_class: GlobalContractCache,
     /// A map from class hash to the set of PC values that were visited in the class.
-    pub visited_pcs: HashMap<ClassHash, HashSet<usize>>,
+    pub visited_pcs: HashMap<ClassHash, Vec<usize>>,
 }
 
 impl<S: StateReader> CachedState<S> {
@@ -103,7 +103,7 @@ impl<S: StateReader> CachedState<S> {
         self.global_class_hash_to_class = global_contract_cache;
     }
 
-    pub fn update_visited_pcs_cache(&mut self, visited_pcs: &HashMap<ClassHash, HashSet<usize>>) {
+    pub fn update_visited_pcs_cache(&mut self, visited_pcs: &HashMap<ClassHash, Vec<usize>>) {
         for (class_hash, class_visited_pcs) in visited_pcs {
             self.add_visited_pcs(*class_hash, class_visited_pcs);
         }
@@ -322,7 +322,7 @@ impl<S: StateReader> State for CachedState<S> {
         }
     }
 
-    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &HashSet<usize>) {
+    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &Vec<usize>) {
         self.visited_pcs.entry(class_hash).or_default().extend(pcs);
     }
 }
@@ -568,7 +568,7 @@ impl<'a, S: State + ?Sized> State for MutRefState<'a, S> {
         self.0.set_compiled_class_hash(class_hash, compiled_class_hash)
     }
 
-    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &HashSet<usize>) {
+    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &Vec<usize>) {
         self.0.add_visited_pcs(class_hash, pcs)
     }
 }
@@ -630,7 +630,7 @@ pub struct StagedTransactionalState {
     pub tx_executed_class_hashes: HashSet<ClassHash>,
     pub tx_visited_storage_entries: HashSet<StorageEntry>,
     pub tx_unique_state_changes_keys: StateChangesKeys,
-    pub visited_pcs: HashMap<ClassHash, HashSet<usize>>,
+    pub visited_pcs: HashMap<ClassHash, Vec<usize>>,
 }
 
 /// Holds uncommitted changes induced on Starknet contracts.

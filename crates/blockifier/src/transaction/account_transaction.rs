@@ -444,6 +444,7 @@ impl AccountTransaction {
         validate: bool,
         charge_fee: bool,
     ) -> TransactionExecutionResult<ValidateExecuteCallInfo> {
+        println!("run_revertible");
         let mut resources = ExecutionResources::default();
         let mut execution_context =
             EntryPointExecutionContext::new_invoke(tx_context.clone(), charge_fee)?;
