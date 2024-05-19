@@ -383,7 +383,6 @@ impl<S: State> Executable<S> for InvokeTransaction {
         context: &mut EntryPointExecutionContext,
         remaining_gas: &mut u64,
     ) -> TransactionExecutionResult<Option<CallInfo>> {
-        println!("InvokeTransaction run_execute");
         let entry_point_selector = match &self.tx {
             starknet_api::transaction::InvokeTransaction::V0(tx) => tx.entry_point_selector,
             starknet_api::transaction::InvokeTransaction::V1(_)
@@ -408,7 +407,6 @@ impl<S: State> Executable<S> for InvokeTransaction {
             .execute(state, resources, context)
             .map_err(TransactionExecutionError::ExecutionError)?;
         update_remaining_gas(remaining_gas, &call_info);
-        println!("code_address {:?}", call_info.call.class_hash);
         Ok(Some(call_info))
     }
 }

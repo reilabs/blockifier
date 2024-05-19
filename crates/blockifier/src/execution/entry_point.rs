@@ -59,7 +59,6 @@ pub struct CallEntryPoint {
 }
 
 impl CallEntryPoint {
-    #[track_caller]
     pub fn execute(
         mut self,
         state: &mut dyn State,
@@ -97,9 +96,6 @@ impl CallEntryPoint {
         self.class_hash = Some(class_hash);
         let contract_class = state.get_compiled_contract_class(class_hash)?;
 
-        let caller_location = std::panic::Location::caller();
-        //let caller_line_number = caller_location.line();
-        println!("execute_entry_point_call {:?} {:?}", class_hash, caller_location.file());
         match contract_class.clone() {
             ContractClass::V1(_v1) => (),
             _ => (),

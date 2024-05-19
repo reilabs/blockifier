@@ -83,13 +83,6 @@ impl Transaction {
                     true => InvokeTransaction::new_for_query(invoke, tx_hash),
                     false => InvokeTransaction::new(invoke, tx_hash),
                 };
-                match invoke_tx.clone().tx {
-                    starknet_api::transaction::InvokeTransaction::V3(tx_v3) => {
-                        let contract = tx_v3.sender_address;
-                        println!("tx_v3.sender_address {:?}", contract);
-                    },
-                    _ => ()
-                }
                 Ok(Self::AccountTransaction(AccountTransaction::Invoke(invoke_tx)))
             }
             _ => unimplemented!(),
@@ -159,11 +152,9 @@ impl<S: StateReader> ExecutableTransaction<S> for Transaction {
     ) -> TransactionExecutionResult<TransactionExecutionInfo> {
         match self {
             Self::AccountTransaction(account_tx) => {
-                println!("AccountTransaction");
                 account_tx.execute_raw(state, block_context, charge_fee, validate)
             }
             Self::L1HandlerTransaction(tx) => {
-                println!("L1HandlerTransaction");
                 tx.execute_raw(state, block_context, charge_fee, validate)
             }
         }

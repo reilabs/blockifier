@@ -167,7 +167,10 @@ impl PyBlockExecutor {
 
     /// Returns the state diff and a list of contract class hash with the corresponding list of
     /// visited PC values.
-    pub fn finalize(&mut self, is_pending_block: bool) -> (PyStateDiff, Vec<(PyFelt, Vec<usize>)>) {
+    pub fn finalize(
+        &mut self,
+        is_pending_block: bool,
+    ) -> (PyStateDiff, Vec<(PyFelt, Vec<Vec<usize>>)>) {
         log::debug!("Finalizing execution...");
         let (commitment_state_diff, visited_pcs) = self.tx_executor().finalize(is_pending_block);
         let visited_pcs = visited_pcs

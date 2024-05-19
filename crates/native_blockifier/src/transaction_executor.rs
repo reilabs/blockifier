@@ -186,7 +186,7 @@ impl<S: StateReader> TransactionExecutor<S> {
     pub fn finalize(
         &mut self,
         is_pending_block: bool,
-    ) -> (CommitmentStateDiff, Vec<(ClassHash, Vec<usize>)>) {
+    ) -> (CommitmentStateDiff, Vec<(ClassHash, Vec<Vec<usize>>)>) {
         // Do not cache classes that were declared during a pending block.
         // They will be redeclared, and should not be cached since the content of this block is
         // transient.
@@ -200,8 +200,8 @@ impl<S: StateReader> TransactionExecutor<S> {
             .visited_pcs
             .iter()
             .map(|(class_hash, class_visited_pcs)| {
-                let mut class_visited_pcs_vec: Vec<_> = class_visited_pcs.iter().cloned().collect();
-                class_visited_pcs_vec.sort();
+                let class_visited_pcs_vec: Vec<_> = class_visited_pcs.iter().cloned().collect();
+                // class_visited_pcs_vec.sort();
                 (*class_hash, class_visited_pcs_vec)
             })
             .collect();
