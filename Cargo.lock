@@ -308,6 +308,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bigdecimal"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6773ddc0eafc0e509fb60e48dff7f450f8e674a0686ae8605e8d9901bd5eefa"
+dependencies = [
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.17",
+ "serde",
+]
+
+[[package]]
 name = "bincode"
 version = "2.0.0-rc.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -396,10 +408,10 @@ dependencies = [
  "assert_matches",
  "cached",
  "cairo-felt",
- "cairo-lang-casm",
- "cairo-lang-runner",
- "cairo-lang-starknet-classes",
- "cairo-lang-utils",
+ "cairo-lang-casm 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-runner 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-starknet-classes 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
  "cairo-vm",
  "derive_more",
  "indexmap 2.1.0",
@@ -417,6 +429,7 @@ dependencies = [
  "serde_json",
  "sha3",
  "starknet-crypto 0.5.2",
+ "starknet-hint-vrf",
  "starknet_api",
  "strum",
  "strum_macros 0.24.3",
@@ -502,7 +515,33 @@ version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed99c41d458d27dd6d42eed29c57c09e8e6d7c70e546b61cb4bfdb9842d0a279"
 dependencies = [
- "cairo-lang-utils",
+ "cairo-lang-utils 2.6.0",
+ "indoc 2.0.4",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "parity-scale-codec",
+ "serde",
+]
+
+[[package]]
+name = "cairo-lang-casm"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
+dependencies = [
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "indoc 2.0.4",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "parity-scale-codec",
+ "serde",
+]
+
+[[package]]
+name = "cairo-lang-casm"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "indoc 2.0.4",
  "num-bigint",
  "num-traits 0.2.17",
@@ -512,22 +551,43 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-compiler"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "064f1515038f0496a52a3def9c11879491f76b72cb064d28b9fb6d5e4557ba8a"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
  "anyhow",
- "cairo-lang-defs",
- "cairo-lang-diagnostics",
- "cairo-lang-filesystem",
- "cairo-lang-lowering",
- "cairo-lang-parser",
- "cairo-lang-project",
- "cairo-lang-semantic",
- "cairo-lang-sierra",
- "cairo-lang-sierra-generator",
- "cairo-lang-syntax",
- "cairo-lang-utils",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-lowering 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-project 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-semantic 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-generator 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "salsa",
+ "smol_str",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-compiler"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "anyhow",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-lowering 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-project 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-semantic 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-generator 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "salsa",
  "smol_str",
  "thiserror",
@@ -535,25 +595,47 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-debug"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d3179c07c03cb5d9a36f3ed7e7402bdfe16b9d0de5a960a9fd598a356032be0"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-utils",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+]
+
+[[package]]
+name = "cairo-lang-debug"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
 ]
 
 [[package]]
 name = "cairo-lang-defs"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a52a7e66818a41ad4332f07fbd7aba09522c2f05e0436dc7ceb2c989067a5e41"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-debug",
- "cairo-lang-diagnostics",
- "cairo-lang-filesystem",
- "cairo-lang-parser",
- "cairo-lang-syntax",
- "cairo-lang-utils",
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "itertools 0.11.0",
+ "salsa",
+ "smol_str",
+]
+
+[[package]]
+name = "cairo-lang-defs"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "itertools 0.11.0",
  "salsa",
  "smol_str",
@@ -561,13 +643,23 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-diagnostics"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2dfe5fc09df15dd815f09257ac7fe2cbfce775ea992b699f4d76f475538d402d"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-debug",
- "cairo-lang-filesystem",
- "cairo-lang-utils",
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "itertools 0.11.0",
+]
+
+[[package]]
+name = "cairo-lang-diagnostics"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "itertools 0.11.0",
 ]
 
@@ -577,18 +669,48 @@ version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae770ae2d5ae2f4b6202137dc3a4053f89ad635ae0328a8f4807a3c5856f2ae9"
 dependencies = [
- "cairo-lang-utils",
+ "cairo-lang-utils 2.6.0",
+ "good_lp",
+]
+
+[[package]]
+name = "cairo-lang-eq-solver"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
+dependencies = [
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "good_lp",
+]
+
+[[package]]
+name = "cairo-lang-eq-solver"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "good_lp",
 ]
 
 [[package]]
 name = "cairo-lang-filesystem"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fee331de8d8dfddcdb015e86be282819d9c93ee2925f3f188d9af41455dda30d"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-debug",
- "cairo-lang-utils",
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "path-clean",
+ "salsa",
+ "serde",
+ "smol_str",
+]
+
+[[package]]
+name = "cairo-lang-filesystem"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "path-clean",
  "salsa",
  "serde",
@@ -597,19 +719,42 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-lowering"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c81afe28160958fb6ca0dd0c7fc40972d3664f390a29b63190b2441ef67d59df"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-debug",
- "cairo-lang-defs",
- "cairo-lang-diagnostics",
- "cairo-lang-filesystem",
- "cairo-lang-parser",
- "cairo-lang-proc-macros",
- "cairo-lang-semantic",
- "cairo-lang-syntax",
- "cairo-lang-utils",
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-proc-macros 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-semantic 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "id-arena",
+ "itertools 0.11.0",
+ "log",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "once_cell",
+ "salsa",
+ "smol_str",
+]
+
+[[package]]
+name = "cairo-lang-lowering"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-proc-macros 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-semantic 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "id-arena",
  "itertools 0.11.0",
  "log",
@@ -622,15 +767,33 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-parser"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1ce7492bbd227138fad2687094af0d1fe0e7ce33f561ab11d6fb0c53bccf01d"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-diagnostics",
- "cairo-lang-filesystem",
- "cairo-lang-syntax",
- "cairo-lang-syntax-codegen",
- "cairo-lang-utils",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-syntax-codegen 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "colored",
+ "itertools 0.11.0",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "salsa",
+ "smol_str",
+ "unescaper",
+]
+
+[[package]]
+name = "cairo-lang-parser"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-syntax-codegen 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "colored",
  "itertools 0.11.0",
  "num-bigint",
@@ -642,16 +805,33 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-plugins"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41dbe519ef698fe0f295b49031cb35ccb919610338a6a5136e8968e13791864d"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-defs",
- "cairo-lang-diagnostics",
- "cairo-lang-filesystem",
- "cairo-lang-parser",
- "cairo-lang-syntax",
- "cairo-lang-utils",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "indent",
+ "indoc 2.0.4",
+ "itertools 0.11.0",
+ "salsa",
+ "smol_str",
+]
+
+[[package]]
+name = "cairo-lang-plugins"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "indent",
  "indoc 2.0.4",
  "itertools 0.11.0",
@@ -661,23 +841,44 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-proc-macros"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd65bf4d71ebc1efb0181b6c4d27c93e7e01fe5d521a15f2a5695cd7b5d79f36"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-debug",
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "quote",
+ "syn 2.0.46",
+]
+
+[[package]]
+name = "cairo-lang-proc-macros"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "quote",
  "syn 2.0.46",
 ]
 
 [[package]]
 name = "cairo-lang-project"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81ecab619e54abf610eefa4918d03831e50e54738b1973e37419734cefd73a77"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-filesystem",
- "cairo-lang-utils",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "serde",
+ "smol_str",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
+name = "cairo-lang-project"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "serde",
  "smol_str",
  "thiserror",
@@ -686,24 +887,53 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-runner"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be60564ec98572096428145342047dddc1bec5c84992f20d38353bd7fbb6c2c4"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
  "ark-ff",
  "ark-secp256k1",
  "ark-secp256r1",
  "ark-std",
  "cairo-felt",
- "cairo-lang-casm",
- "cairo-lang-lowering",
- "cairo-lang-sierra",
- "cairo-lang-sierra-ap-change",
- "cairo-lang-sierra-generator",
- "cairo-lang-sierra-to-casm",
- "cairo-lang-sierra-type-size",
- "cairo-lang-starknet",
- "cairo-lang-utils",
+ "cairo-lang-casm 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-lowering 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-ap-change 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-generator 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-to-casm 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-type-size 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-starknet 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-vm",
+ "itertools 0.11.0",
+ "keccak",
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.17",
+ "smol_str",
+ "starknet-crypto 0.6.1",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-runner"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "ark-ff",
+ "ark-secp256k1",
+ "ark-secp256r1",
+ "ark-std",
+ "cairo-felt",
+ "cairo-lang-casm 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-lowering 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-ap-change 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-generator 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-to-casm 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-type-size 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-starknet 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "cairo-vm",
  "itertools 0.11.0",
  "keccak",
@@ -717,19 +947,42 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-semantic"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d2a528f1c547e67631dcea299b6864f96792052e3a7ce27e5cbc23d6fce0fcf"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-debug",
- "cairo-lang-defs",
- "cairo-lang-diagnostics",
- "cairo-lang-filesystem",
- "cairo-lang-parser",
- "cairo-lang-plugins",
- "cairo-lang-proc-macros",
- "cairo-lang-syntax",
- "cairo-lang-utils",
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-plugins 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-proc-macros 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "id-arena",
+ "indoc 2.0.4",
+ "itertools 0.11.0",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "once_cell",
+ "salsa",
+ "smol_str",
+]
+
+[[package]]
+name = "cairo-lang-semantic"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-plugins 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-proc-macros 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "id-arena",
  "indoc 2.0.4",
  "itertools 0.11.0",
@@ -748,7 +1001,57 @@ checksum = "5774a2d5725d9cd96cfead69ea070ddfc87f912c36ab91086df66efe90e89e7c"
 dependencies = [
  "anyhow",
  "cairo-felt",
- "cairo-lang-utils",
+ "cairo-lang-utils 2.6.0",
+ "const-fnv1a-hash",
+ "convert_case 0.6.0",
+ "derivative",
+ "itertools 0.11.0",
+ "lalrpop",
+ "lalrpop-util",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "regex",
+ "salsa",
+ "serde",
+ "serde_json",
+ "sha3",
+ "smol_str",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-sierra"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
+dependencies = [
+ "anyhow",
+ "cairo-felt",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "const-fnv1a-hash",
+ "convert_case 0.6.0",
+ "derivative",
+ "itertools 0.11.0",
+ "lalrpop",
+ "lalrpop-util",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "regex",
+ "salsa",
+ "serde",
+ "serde_json",
+ "sha3",
+ "smol_str",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-sierra"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "anyhow",
+ "cairo-felt",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "const-fnv1a-hash",
  "convert_case 0.6.0",
  "derivative",
@@ -772,10 +1075,38 @@ version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "237de08219efe89406ce1cd6db8c2c1b8b062b090156ea82fb4f6eb8899d47f0"
 dependencies = [
- "cairo-lang-eq-solver",
- "cairo-lang-sierra",
- "cairo-lang-sierra-type-size",
- "cairo-lang-utils",
+ "cairo-lang-eq-solver 2.6.0",
+ "cairo-lang-sierra 2.6.0",
+ "cairo-lang-sierra-type-size 2.6.0",
+ "cairo-lang-utils 2.6.0",
+ "itertools 0.11.0",
+ "num-traits 0.2.17",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-sierra-ap-change"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
+dependencies = [
+ "cairo-lang-eq-solver 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-type-size 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "itertools 0.11.0",
+ "num-traits 0.2.17",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-sierra-ap-change"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-eq-solver 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-type-size 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "itertools 0.11.0",
  "num-traits 0.2.17",
  "thiserror",
@@ -787,10 +1118,38 @@ version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7b6fcdb1894da323e17c0f8388aab0622d25ace481c8d71eccafb764a2651fe"
 dependencies = [
- "cairo-lang-eq-solver",
- "cairo-lang-sierra",
- "cairo-lang-sierra-type-size",
- "cairo-lang-utils",
+ "cairo-lang-eq-solver 2.6.0",
+ "cairo-lang-sierra 2.6.0",
+ "cairo-lang-sierra-type-size 2.6.0",
+ "cairo-lang-utils 2.6.0",
+ "itertools 0.11.0",
+ "num-traits 0.2.17",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-sierra-gas"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
+dependencies = [
+ "cairo-lang-eq-solver 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-type-size 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "itertools 0.11.0",
+ "num-traits 0.2.17",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-sierra-gas"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-eq-solver 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-type-size 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "itertools 0.11.0",
  "num-traits 0.2.17",
  "thiserror",
@@ -798,20 +1157,41 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-sierra-generator"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9507e0de57e9e3bd973c6b1e341910283d9283649f9c003fe1ed62c94270a447"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-debug",
- "cairo-lang-defs",
- "cairo-lang-diagnostics",
- "cairo-lang-filesystem",
- "cairo-lang-lowering",
- "cairo-lang-parser",
- "cairo-lang-semantic",
- "cairo-lang-sierra",
- "cairo-lang-syntax",
- "cairo-lang-utils",
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-lowering 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-semantic 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "itertools 0.11.0",
+ "num-traits 0.2.17",
+ "once_cell",
+ "salsa",
+ "smol_str",
+]
+
+[[package]]
+name = "cairo-lang-sierra-generator"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-lowering 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-parser 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-semantic 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "itertools 0.11.0",
  "num-traits 0.2.17",
  "once_cell",
@@ -827,12 +1207,52 @@ checksum = "042ca9969b62580fbd9f257e60c9e441715335a2fe7c79826aa9664ef4e21187"
 dependencies = [
  "assert_matches",
  "cairo-felt",
- "cairo-lang-casm",
- "cairo-lang-sierra",
- "cairo-lang-sierra-ap-change",
- "cairo-lang-sierra-gas",
- "cairo-lang-sierra-type-size",
- "cairo-lang-utils",
+ "cairo-lang-casm 2.6.0",
+ "cairo-lang-sierra 2.6.0",
+ "cairo-lang-sierra-ap-change 2.6.0",
+ "cairo-lang-sierra-gas 2.6.0",
+ "cairo-lang-sierra-type-size 2.6.0",
+ "cairo-lang-utils 2.6.0",
+ "indoc 2.0.4",
+ "itertools 0.11.0",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-sierra-to-casm"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
+dependencies = [
+ "assert_matches",
+ "cairo-felt",
+ "cairo-lang-casm 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-ap-change 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-gas 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-type-size 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "indoc 2.0.4",
+ "itertools 0.11.0",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-sierra-to-casm"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "assert_matches",
+ "cairo-felt",
+ "cairo-lang-casm 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-ap-change 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-gas 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-type-size 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "indoc 2.0.4",
  "itertools 0.11.0",
  "num-bigint",
@@ -846,30 +1266,77 @@ version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "859e83d8ceeec98b72119c89281468ad08b6a60c9f2d99ddce407df0c6b8377c"
 dependencies = [
- "cairo-lang-sierra",
- "cairo-lang-utils",
+ "cairo-lang-sierra 2.6.0",
+ "cairo-lang-utils 2.6.0",
+]
+
+[[package]]
+name = "cairo-lang-sierra-type-size"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
+dependencies = [
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+]
+
+[[package]]
+name = "cairo-lang-sierra-type-size"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
 ]
 
 [[package]]
 name = "cairo-lang-starknet"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76a22e15a9c91f26fe9b8638bddcb8b08282b7a27d1435c8390f5fa6abdef768"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
  "anyhow",
  "cairo-felt",
- "cairo-lang-compiler",
- "cairo-lang-defs",
- "cairo-lang-diagnostics",
- "cairo-lang-filesystem",
- "cairo-lang-lowering",
- "cairo-lang-plugins",
- "cairo-lang-semantic",
- "cairo-lang-sierra",
- "cairo-lang-sierra-generator",
- "cairo-lang-starknet-classes",
- "cairo-lang-syntax",
- "cairo-lang-utils",
+ "cairo-lang-compiler 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-lowering 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-plugins 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-semantic 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-generator 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-starknet-classes 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "const_format",
+ "indent",
+ "indoc 2.0.4",
+ "itertools 0.11.0",
+ "once_cell",
+ "serde",
+ "serde_json",
+ "smol_str",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-starknet"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "anyhow",
+ "cairo-felt",
+ "cairo-lang-compiler 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-defs 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-diagnostics 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-lowering 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-plugins 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-semantic 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-generator 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-starknet-classes 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-syntax 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "const_format",
  "indent",
  "indoc 2.0.4",
@@ -888,10 +1355,58 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39d9d31715b12f46963373bf0c4eeaa66c1839ee44fb176e39fe49d364aea0cf"
 dependencies = [
  "cairo-felt",
- "cairo-lang-casm",
- "cairo-lang-sierra",
- "cairo-lang-sierra-to-casm",
- "cairo-lang-utils",
+ "cairo-lang-casm 2.6.0",
+ "cairo-lang-sierra 2.6.0",
+ "cairo-lang-sierra-to-casm 2.6.0",
+ "cairo-lang-utils 2.6.0",
+ "convert_case 0.6.0",
+ "itertools 0.11.0",
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.17",
+ "once_cell",
+ "serde",
+ "serde_json",
+ "sha3",
+ "smol_str",
+ "starknet-crypto 0.6.1",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-starknet-classes"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
+dependencies = [
+ "cairo-felt",
+ "cairo-lang-casm 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-sierra-to-casm 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "convert_case 0.6.0",
+ "itertools 0.11.0",
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.17",
+ "once_cell",
+ "serde",
+ "serde_json",
+ "sha3",
+ "smol_str",
+ "starknet-crypto 0.6.1",
+ "thiserror",
+]
+
+[[package]]
+name = "cairo-lang-starknet-classes"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-felt",
+ "cairo-lang-casm 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-sierra-to-casm 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "convert_case 0.6.0",
  "itertools 0.11.0",
  "num-bigint",
@@ -908,13 +1423,27 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-syntax"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03bca67a21f85098d3185a2c016ef335ffc0b815a8305aad4a117876379c2cb3"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
 dependencies = [
- "cairo-lang-debug",
- "cairo-lang-filesystem",
- "cairo-lang-utils",
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "salsa",
+ "smol_str",
+ "unescaper",
+]
+
+[[package]]
+name = "cairo-lang-syntax"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "cairo-lang-debug 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-filesystem 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "cairo-lang-utils 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
  "num-bigint",
  "num-traits 0.2.17",
  "salsa",
@@ -924,9 +1453,17 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-syntax-codegen"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06841b9eb87842cad1679f3c8534d25bbb5710923fd9e1903ca62e0663d91698"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
+dependencies = [
+ "genco",
+ "xshell",
+]
+
+[[package]]
+name = "cairo-lang-syntax-codegen"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
 dependencies = [
  "genco",
  "xshell",
@@ -944,6 +1481,35 @@ dependencies = [
  "num-bigint",
  "num-traits 0.2.17",
  "parity-scale-codec",
+ "schemars",
+ "serde",
+]
+
+[[package]]
+name = "cairo-lang-utils"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/cairo?branch=2.6.3-hints#7098ecab4f53dfe6e39b080d7f50a644fddda1ae"
+dependencies = [
+ "hashbrown 0.14.3",
+ "indexmap 2.1.0",
+ "itertools 0.11.0",
+ "num-bigint",
+ "num-traits 0.2.17",
+ "parity-scale-codec",
+ "schemars",
+ "serde",
+]
+
+[[package]]
+name = "cairo-lang-utils"
+version = "2.6.3"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "hashbrown 0.14.3",
+ "indexmap 2.1.0",
+ "itertools 0.11.0",
+ "num-bigint",
+ "num-traits 0.2.17",
  "schemars",
  "serde",
 ]
@@ -2110,7 +2676,7 @@ version = "0.6.0-rc.2"
 dependencies = [
  "blockifier",
  "cached",
- "cairo-lang-starknet-classes",
+ "cairo-lang-starknet-classes 2.6.3 (git+https://github.com/reilabs/cairo?branch=2.6.3-hints)",
  "cairo-vm",
  "criterion",
  "indexmap 2.1.0",
@@ -2297,9 +2863,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "158e46cc1a5705ffd601253aea6a49c1ff64a9ceefdbebee0aeee60c3d1dff41"
 dependencies = [
  "byteorder",
- "cairo-lang-casm",
- "cairo-lang-starknet-classes",
- "cairo-lang-utils",
+ "cairo-lang-casm 2.6.0",
+ "cairo-lang-starknet-classes 2.6.0",
+ "cairo-lang-utils 2.6.0",
  "clap 4.4.13",
  "flate2",
  "human_bytes",
@@ -3124,6 +3690,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "stark-vrf"
+version = "0.1.0"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
+ "starknet-crypto 0.6.1",
+ "starknet-ff",
+ "thiserror",
+]
+
+[[package]]
 name = "starknet-crypto"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3194,14 +3773,27 @@ dependencies = [
 
 [[package]]
 name = "starknet-ff"
-version = "0.3.6"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "067419451efdea1ee968df8438369960c167e0e905c05b84afd074f50e1d6f3d"
+checksum = "7abf1b44ec5b18d87c1ae5f54590ca9d0699ef4dd5b2ffa66fc97f24613ec585"
 dependencies = [
  "ark-ff",
+ "bigdecimal",
  "crypto-bigint",
  "getrandom",
  "hex",
+ "serde",
+]
+
+[[package]]
+name = "starknet-hint-vrf"
+version = "0.1.0"
+source = "git+https://github.com/reilabs/starknet-vrf#ef643c8d75392ee1807364f8113714eb33962bfe"
+dependencies = [
+ "ark-ec",
+ "cairo-lang-runner 2.6.3 (git+https://github.com/reilabs/starknet-vrf)",
+ "stark-vrf",
+ "starknet-ff",
 ]
 
 [[package]]
@@ -3210,7 +3802,7 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e6aeb260177f5ca6dde788e844825d8d83782905dbac1b24c0c620743284475"
 dependencies = [
- "cairo-lang-starknet-classes",
+ "cairo-lang-starknet-classes 2.6.0",
  "derive_more",
  "hex",
  "indexmap 2.1.0",
@@ -3378,18 +3970,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.56"
+version = "1.0.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d54378c645627613241d077a3a79db965db602882668f9136ac42af9ecb730ad"
+checksum = "c546c80d6be4bc6a00c0f01730c08df82eaa7a7a61f11d656526506112cc1709"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.56"
+version = "1.0.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa0faa943b50f3db30a20aa7e265dbc66076993efed8463e8de414e5d06d3471"
+checksum = "46c3384250002a6d5af4d114f2845d37b57521033f30d5c3f46c4d70e1197533"
 dependencies = [
  "proc-macro2",
  "quote",
