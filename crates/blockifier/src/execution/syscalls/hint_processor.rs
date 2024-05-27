@@ -317,10 +317,12 @@ impl<'a> SyscallHintProcessor<'a> {
 
         let mut res_segment = MemBuffer::new_segment(vm);
         let res_segment_start = res_segment.ptr;
-        res_segment.write(Felt252::new(43))?;
-        res_segment.write(Felt252::new(44))?;
-        res_segment.write(Felt252::new(45))?;
-        res_segment.write(Felt252::new(46))?;
+        res_segment.write_data(output.iter())?;
+        println!("data written");
+        // res_segment.write(Felt252::new(43))?;
+        // res_segment.write(Felt252::new(44))?;
+        // res_segment.write(Felt252::new(45))?;
+        // res_segment.write(Felt252::new(46))?;
 
         let res_segment_end = res_segment.ptr;
         insert_value_to_cellref!(vm, output_start, res_segment_start)?;
