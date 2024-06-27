@@ -7,6 +7,7 @@ use cairo_lang_casm::operand::{BinOpOperand, CellRef, DerefOrImmediate, Operatio
 use cairo_lang_runner::casm_run::{cell_ref_to_relocatable, execute_core_hint_base, extract_relocatable, vm_get_range, MemBuffer};
 use cairo_lang_runner::insert_value_to_cellref;
 use cairo_lang_utils::bigint::BigIntAsHex;
+use cairo_oracle::CairoOracle;
 use cairo_vm::hint_processor::hint_processor_definition::{HintProcessorLogic, HintReference};
 use cairo_vm::serde::deserialize_program::ApTracking;
 use cairo_vm::types::errors::math_errors::MathError;
@@ -24,6 +25,7 @@ use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
 use starknet_api::transaction::{Calldata, Resource};
 use starknet_api::StarknetApiError;
+use starknet_types_core::felt::Felt as OracleFelt;
 use thiserror::Error;
 
 use crate::abi::sierra_types::SierraTypeError;
@@ -276,13 +278,15 @@ impl<'a> SyscallHintProcessor<'a> {
         let input_end = extract_relocatable(vm, input_end)?;
         let inputs = vm_get_range(vm, input_start, input_end)?;
 
-        println!("executing hint {selector} with inputs: {inputs:?}");
-
         // Prepare outputs
         let mut res_segment = MemBuffer::new_segment(vm);
         let res_segment_start = res_segment.ptr;
 
-        res_segment.write(Felt252::from(42))?;
+        let oracle = CairoOracle::new_from_env();
+        let inputs: Vec<OracleFelt> = inputs.into_iter().map(|felt| OracleFelt::from_bytes_be(&felt.to_be_bytes())).collect();
+        let result = oracle.execute_hint(selector, inputs.as_ref()).map_err(|err| HintError::CustomHint(err))?;
+        let data: Vec<Felt252> = result.into_iter().map(|felt| Felt252::from_bytes_be(felt.to_bytes_be().as_slice())).collect();
+        res_segment.write_data(data.iter())?;
 
         let res_segment_end = res_segment.ptr;
         insert_value_to_cellref!(vm, output_start, res_segment_start)?;
