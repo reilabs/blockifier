@@ -3,8 +3,11 @@ use std::collections::{HashMap, HashSet};
 
 use cairo_felt::Felt252;
 use cairo_lang_casm::hints::{Hint, StarknetHint};
-use cairo_lang_casm::operand::{BinOpOperand, DerefOrImmediate, Operation, Register, ResOperand};
-use cairo_lang_runner::casm_run::execute_core_hint_base;
+use cairo_lang_casm::operand::{BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand};
+use cairo_lang_runner::casm_run::{cell_ref_to_relocatable, execute_core_hint_base, extract_relocatable, vm_get_range, MemBuffer};
+use cairo_lang_runner::insert_value_to_cellref;
+use cairo_lang_utils::bigint::BigIntAsHex;
+use cairo_oracle::CairoOracle;
 use cairo_vm::hint_processor::hint_processor_definition::{HintProcessorLogic, HintReference};
 use cairo_vm::serde::deserialize_program::ApTracking;
 use cairo_vm::types::errors::math_errors::MathError;
@@ -22,6 +25,7 @@ use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
 use starknet_api::transaction::{Calldata, Resource};
 use starknet_api::StarknetApiError;
+use starknet_types_core::felt::Felt as OracleFelt;
 use thiserror::Error;
 
 use crate::abi::sierra_types::SierraTypeError;
@@ -255,6 +259,41 @@ impl<'a> SyscallHintProcessor<'a> {
         Ok(())
     }
 
+    fn execute_cheatcode(
+        &mut self,
+        vm: &mut VirtualMachine,
+        selector: &BigIntAsHex,
+        input_start: &ResOperand,
+        input_end: &ResOperand,
+        output_start: &CellRef,
+        output_end: &CellRef
+    ) -> HintExecutionResult {
+        let selector = &selector.value.to_bytes_be().1;
+        let selector = std::str::from_utf8(selector).map_err(|_| {
+            HintError::CustomHint(Box::from("failed to parse selector".to_string()))
+        })?;
+
+        // Extract the inputs.
+        let input_start = extract_relocatable(vm, input_start)?;
+        let input_end = extract_relocatable(vm, input_end)?;
+        let inputs = vm_get_range(vm, input_start, input_end)?;
+
+        // Prepare outputs
+        let mut res_segment = MemBuffer::new_segment(vm);
+        let res_segment_start = res_segment.ptr;
+
+        let oracle = CairoOracle::new_from_env();
+        let inputs: Vec<OracleFelt> = inputs.into_iter().map(|felt| OracleFelt::from_bytes_be(&felt.to_be_bytes())).collect();
+        let result = oracle.execute_hint(selector, inputs.as_ref()).map_err(|err| HintError::CustomHint(err))?;
+        let data: Vec<Felt252> = result.into_iter().map(|felt| Felt252::from_bytes_be(felt.to_bytes_be().as_slice())).collect();
+        res_segment.write_data(data.iter())?;
+
+        let res_segment_end = res_segment.ptr;
+        insert_value_to_cellref!(vm, output_start, res_segment_start)?;
+        insert_value_to_cellref!(vm, output_end, res_segment_end)?;
+        Ok(())
+    }
+
     /// Infers and executes the next syscall.
     /// Must comply with the API of a hint function, as defined by the `HintProcessor`.
     pub fn execute_next_syscall(
@@ -262,11 +301,18 @@ impl<'a> SyscallHintProcessor<'a> {
         vm: &mut VirtualMachine,
         hint: &StarknetHint,
     ) -> HintExecutionResult {
-        let StarknetHint::SystemCall { system: syscall } = hint else {
-            return Err(HintError::Internal(VirtualMachineError::Other(anyhow::anyhow!(
-                "Test functions are unsupported on starknet."
-            ))));
+        let syscall = match hint {
+            StarknetHint::SystemCall { system } => system,
+            StarknetHint::Cheatcode { selector, input_start, input_end, output_start, output_end } => {
+                return self.execute_cheatcode(vm, selector, input_start, input_end, output_start, output_end);
+            },
         };
+
+        // let StarknetHint::SystemCall { system: syscall } = hint else {
+        //     return Err(HintError::Internal(VirtualMachineError::Other(anyhow::anyhow!(
+        //         "Test functions are unsupported on starknet - oh really?!"
+        //     ))));
+        // };
         let initial_syscall_ptr = get_ptr_from_res_operand_unchecked(vm, syscall);
         self.verify_syscall_ptr(initial_syscall_ptr)?;
 
