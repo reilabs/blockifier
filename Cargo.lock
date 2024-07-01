@@ -1000,7 +1000,7 @@ dependencies = [
 [[package]]
 name = "cairo-oracle"
 version = "0.1.0"
-source = "git+https://github.com/reilabs/cairo-hints?branch=oracle#2823e505068663efef27ec5f0dfc2f4b58ee755b"
+source = "git+https://github.com/reilabs/cairo-hints?branch=main#448a8fe2767bbe829bfb98dcc3f2dbba08d54833"
 dependencies = [
  "cairo-proto-serde",
  "indoc",
@@ -1014,7 +1014,7 @@ dependencies = [
 [[package]]
 name = "cairo-proto-serde"
 version = "0.1.0"
-source = "git+https://github.com/reilabs/cairo-hints?branch=oracle#2823e505068663efef27ec5f0dfc2f4b58ee755b"
+source = "git+https://github.com/reilabs/cairo-hints?branch=main#448a8fe2767bbe829bfb98dcc3f2dbba08d54833"
 dependencies = [
  "num-traits 0.2.19",
  "serde",
