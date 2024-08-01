@@ -1,9 +1,11 @@
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
-
+use cairo_lang_casm::operand::{BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand};
+use cairo_lang_runner::casm_run::{cell_ref_to_relocatable, execute_core_hint_base, extract_relocatable, vm_get_range, MemBuffer};
 use cairo_lang_casm::hints::{Hint, StarknetHint};
-use cairo_lang_casm::operand::{BinOpOperand, DerefOrImmediate, Operation, Register, ResOperand};
-use cairo_lang_runner::casm_run::execute_core_hint_base;
+use cairo_lang_runner::insert_value_to_cellref;
+use cairo_lang_utils::bigint::BigIntAsHex;
+use cairo_oracle::CairoOracle;
 use cairo_vm::hint_processor::hint_processor_definition::{HintProcessorLogic, HintReference};
 use cairo_vm::serde::deserialize_program::ApTracking;
 use cairo_vm::types::errors::math_errors::MathError;
@@ -25,12 +27,11 @@ use thiserror::Error;
 use crate::abi::sierra_types::SierraTypeError;
 use crate::execution::call_info::{CallInfo, OrderedEvent, OrderedL2ToL1Message};
 use crate::execution::common_hints::{ExecutionMode, HintExecutionResult};
-use crate::execution::entry_point::{CallEntryPoint, CallType, EntryPointExecutionContext};
+use crate::execution::entry_point::{CallEntryPoint, CallType, EntryPointExecutionContext};  
 use crate::execution::errors::{ConstructorEntryPointExecutionError, EntryPointExecutionError};
 use crate::execution::execution_utils::{
     felt_from_ptr, felt_range_from_ptr, max_fee_for_execution_info, write_maybe_relocatable,
-    ReadOnlySegment, ReadOnlySegments,
-};
+    ReadOnlySegment, ReadOnlySegments,};
 use crate::execution::syscalls::secp::{
     secp256k1_add, secp256k1_get_point_from_x, secp256k1_get_xy, secp256k1_mul, secp256k1_new,
     secp256r1_add, secp256r1_get_point_from_x, secp256r1_get_xy, secp256r1_mul, secp256r1_new,
@@ -41,7 +42,7 @@ use crate::execution::syscalls::{
     library_call_l1_handler, replace_class, send_message_to_l1, sha_256_process_block,
     storage_read, storage_write, StorageReadResponse, StorageWriteResponse, SyscallRequest,
     SyscallRequestWrapper, SyscallResponse, SyscallResponseWrapper, SyscallResult, SyscallSelector,
-};
+    };
 use crate::state::errors::StateError;
 use crate::state::state_api::State;
 use crate::transaction::objects::{CurrentTransactionInfo, TransactionInfo};
@@ -275,6 +276,39 @@ impl<'a> SyscallHintProcessor<'a> {
         Ok(())
     }
 
+    fn execute_cheatcode(
+        &mut self,
+        vm: &mut VirtualMachine,
+        selector: &BigIntAsHex,
+        input_start: &ResOperand,
+        input_end: &ResOperand,
+        output_start: &CellRef,
+        output_end: &CellRef
+    ) -> HintExecutionResult {
+        let selector = &selector.value.to_bytes_be().1;
+        let selector = std::str::from_utf8(selector).map_err(|_| {
+            HintError::CustomHint(Box::from("failed to parse selector".to_string()))
+        })?;
+
+        // Extract the inputs.
+        let input_start = extract_relocatable(vm, input_start)?;
+        let input_end = extract_relocatable(vm, input_end)?;
+        let inputs = vm_get_range(vm, input_start, input_end)?;
+
+        // Prepare outputs
+        let mut res_segment = MemBuffer::new_segment(vm);
+        let res_segment_start = res_segment.ptr;
+
+        let oracle = CairoOracle::new_from_env();
+        let result = oracle.execute_hint(selector, inputs.as_ref()).map_err(|err| HintError::CustomHint(err))?;
+        res_segment.write_data(result.iter())?;
+
+        let res_segment_end = res_segment.ptr;
+        insert_value_to_cellref!(vm, output_start, res_segment_start)?;
+        insert_value_to_cellref!(vm, output_end, res_segment_end)?;
+        Ok(())
+    }
+
     /// Infers and executes the next syscall.
     /// Must comply with the API of a hint function, as defined by the `HintProcessor`.
     pub fn execute_next_syscall(
@@ -282,11 +316,18 @@ impl<'a> SyscallHintProcessor<'a> {
         vm: &mut VirtualMachine,
         hint: &StarknetHint,
     ) -> HintExecutionResult {
-        let StarknetHint::SystemCall { system: syscall } = hint else {
-            return Err(HintError::Internal(VirtualMachineError::Other(anyhow::anyhow!(
-                "Test functions are unsupported on starknet."
-            ))));
+        let syscall = match hint {
+            StarknetHint::SystemCall { system } => system,
+            StarknetHint::Cheatcode { selector, input_start, input_end, output_start, output_end } => {
+                return self.execute_cheatcode(vm, selector, input_start, input_end, output_start, output_end);
+            },
         };
+
+        // let StarknetHint::SystemCall { system: syscall } = hint else {
+        //     return Err(HintError::Internal(VirtualMachineError::Other(anyhow::anyhow!(
+        //         "Test functions are unsupported on starknet - oh really?!"
+        //     ))));
+        // };
         let initial_syscall_ptr = get_ptr_from_res_operand_unchecked(vm, syscall);
         self.verify_syscall_ptr(initial_syscall_ptr)?;
 
