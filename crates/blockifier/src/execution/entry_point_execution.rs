@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use cairo_vm::types::builtin_name::BuiltinName;
 use cairo_vm::types::layout_name::LayoutName;
 use cairo_vm::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -19,6 +17,7 @@ use crate::execution::execution_utils::{
     read_execution_retdata, write_felt, write_maybe_relocatable, Args, ReadOnlySegments,
 };
 use crate::execution::syscalls::hint_processor::SyscallHintProcessor;
+use crate::state::cached_state::Pcs;
 use crate::state::state_api::State;
 
 // TODO(spapini): Try to refactor this file into a StarknetRunner struct.
@@ -109,7 +108,14 @@ fn register_visited_pcs(
     program_segment_size: usize,
     bytecode_length: usize,
 ) -> EntryPointExecutionResult<()> {
-    let mut class_visited_pcs = HashSet::new();
+    fn add_element(pcs: &mut Pcs, element: usize) {
+        #[cfg(not(feature = "full_visited_pcs"))]
+        pcs.insert(element);
+
+        #[cfg(feature = "full_visited_pcs")]
+        pcs.push(element);
+    }
+    let mut class_visited_pcs = Pcs::new();
     // Relocate the trace, putting the program segment at address 1 and the execution segment right
     // after it.
     // TODO(lior): Avoid unnecessary relocation once the VM has a non-relocated `get_trace()`
@@ -126,10 +132,11 @@ fn register_visited_pcs(
         // Jumping to a PC that is not inside the bytecode is possible. For example, to obtain
         // the builtin costs. Filter out these values.
         if real_pc < bytecode_length {
-            class_visited_pcs.insert(real_pc);
+            add_element(&mut class_visited_pcs, real_pc);
         }
     }
     state.add_visited_pcs(class_hash, &class_visited_pcs);
+
     Ok(())
 }
 

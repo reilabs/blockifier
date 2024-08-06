@@ -1,6 +1,4 @@
 #[cfg(feature = "concurrency")]
-use std::collections::{HashMap, HashSet};
-#[cfg(feature = "concurrency")]
 use std::sync::Arc;
 #[cfg(feature = "concurrency")]
 use std::sync::Mutex;
@@ -15,7 +13,9 @@ use crate::bouncer::{Bouncer, BouncerWeights};
 #[cfg(feature = "concurrency")]
 use crate::concurrency::worker_logic::WorkerExecutor;
 use crate::context::BlockContext;
-use crate::state::cached_state::{CachedState, CommitmentStateDiff, TransactionalState};
+use crate::state::cached_state::{
+    CachedState, CommitmentStateDiff, TransactionalState, VisitedPcs,
+};
 use crate::state::errors::StateError;
 use crate::state::state_api::StateReader;
 use crate::transaction::errors::TransactionExecutionError;
@@ -150,14 +150,19 @@ impl<S: StateReader> TransactionExecutor<S> {
             .as_ref()
             .expect(BLOCK_STATE_ACCESS_ERR)
             .visited_pcs
-            .iter()
-            .map(|(class_hash, class_visited_pcs)| -> TransactionExecutorResult<_> {
+            .keys()
+            .map(|class_hash| -> TransactionExecutorResult<_> {
                 let contract_class = self
                     .block_state
                     .as_ref()
                     .expect(BLOCK_STATE_ACCESS_ERR)
                     .get_compiled_contract_class(*class_hash)?;
-                Ok((*class_hash, contract_class.get_visited_segments(class_visited_pcs)?))
+                let visited_pcs_set = self
+                    .block_state
+                    .as_ref()
+                    .expect(BLOCK_STATE_ACCESS_ERR)
+                    .get_set_visited_pcs(class_hash);
+                Ok((*class_hash, contract_class.get_visited_segments(&visited_pcs_set)?))
             })
             .collect::<TransactionExecutorResult<_>>()?;
 
@@ -243,7 +248,7 @@ impl<S: StateReader + Send + Sync> TransactionExecutor<S> {
 
         let n_committed_txs = worker_executor.scheduler.get_n_committed_txs();
         let mut tx_execution_results = Vec::new();
-        let mut visited_pcs: HashMap<ClassHash, HashSet<usize>> = HashMap::new();
+        let mut visited_pcs: VisitedPcs = VisitedPcs::new();
         for execution_output in worker_executor.execution_outputs.iter() {
             if tx_execution_results.len() >= n_committed_txs {
                 break;
@@ -256,7 +261,7 @@ impl<S: StateReader + Send + Sync> TransactionExecutor<S> {
             tx_execution_results
                 .push(locked_execution_output.result.map_err(TransactionExecutorError::from));
             for (class_hash, class_visited_pcs) in locked_execution_output.visited_pcs {
-                visited_pcs.entry(class_hash).or_default().extend(class_visited_pcs);
+                visited_pcs.entry(class_hash).or_default().extend(class_visited_pcs.clone());
             }
         }
 

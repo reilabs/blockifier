@@ -11,6 +11,7 @@ workspace = true
 
 [features]
 concurrency = []
+full_visited_pcs = []
 jemalloc = ["dep:tikv-jemallocator"]
 testing = ["rand", "rstest"]
 

@@ -21,6 +21,18 @@ mod test;
 
 pub type ContractClassMapping = HashMap<ClassHash, ContractClass>;
 
+#[cfg(not(feature = "full_visited_pcs"))]
+pub type Pcs = HashSet<usize>;
+
+#[cfg(feature = "full_visited_pcs")]
+pub type Pcs = Vec<usize>;
+
+#[cfg(not(feature = "full_visited_pcs"))]
+pub type VisitedPcs = HashMap<ClassHash, Pcs>;
+
+#[cfg(feature = "full_visited_pcs")]
+pub type VisitedPcs = HashMap<ClassHash, Vec<Pcs>>;
+
 /// Caches read and write requests.
 ///
 /// Writer functionality is builtin, whereas Reader functionality is injected through
@@ -33,7 +45,7 @@ pub struct CachedState<S: StateReader> {
     pub(crate) cache: RefCell<StateCache>,
     pub(crate) class_hash_to_class: RefCell<ContractClassMapping>,
     /// A map from class hash to the set of PC values that were visited in the class.
-    pub visited_pcs: HashMap<ClassHash, HashSet<usize>>,
+    pub visited_pcs: VisitedPcs,
 }
 
 impl<S: StateReader> CachedState<S> {
@@ -59,6 +71,25 @@ impl<S: StateReader> CachedState<S> {
         Ok(self.to_state_diff()?.into())
     }
 
+    pub fn get_set_visited_pcs(&self, class_hash: &ClassHash) -> HashSet<usize> {
+        #[cfg(not(feature = "full_visited_pcs"))]
+        fn from_set(class_hash: &ClassHash, visited_pcs: &VisitedPcs) -> HashSet<usize> {
+            return visited_pcs.get(class_hash).unwrap().clone();
+        }
+
+        #[cfg(feature = "full_visited_pcs")]
+        fn from_set(class_hash: &ClassHash, visited_pcs: &VisitedPcs) -> HashSet<usize> {
+            let class_visited_pcs = visited_pcs.get(class_hash).unwrap();
+            let mut visited_pcs_set: HashSet<usize> = HashSet::new();
+            for pcs in class_visited_pcs {
+                visited_pcs_set.extend(pcs.iter());
+            }
+            visited_pcs_set
+        }
+
+        from_set(class_hash, &self.visited_pcs)
+    }
+
     pub fn update_cache(
         &mut self,
         write_updates: &StateMaps,
@@ -73,9 +104,9 @@ impl<S: StateReader> CachedState<S> {
         self.class_hash_to_class.get_mut().extend(local_contract_cache_updates);
     }
 
-    pub fn update_visited_pcs_cache(&mut self, visited_pcs: &HashMap<ClassHash, HashSet<usize>>) {
+    pub fn update_visited_pcs_cache(&mut self, visited_pcs: &VisitedPcs) {
         for (class_hash, class_visited_pcs) in visited_pcs {
-            self.add_visited_pcs(*class_hash, class_visited_pcs);
+            self.visited_pcs.entry(*class_hash).or_default().extend(class_visited_pcs.clone());
         }
     }
 
@@ -112,7 +143,7 @@ impl<S: StateReader> UpdatableState for CachedState<S> {
         &mut self,
         writes: &StateMaps,
         class_hash_to_class: &ContractClassMapping,
-        visited_pcs: &HashMap<ClassHash, HashSet<usize>>,
+        visited_pcs: &VisitedPcs,
     ) {
         // TODO(OriF,15/5/24): Reconsider the clone.
         self.update_cache(writes, class_hash_to_class.clone());
@@ -275,8 +306,18 @@ impl<S: StateReader> State for CachedState<S> {
         Ok(())
     }
 
-    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &HashSet<usize>) {
-        self.visited_pcs.entry(class_hash).or_default().extend(pcs);
+    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &Pcs) {
+        #[cfg(not(feature = "full_visited_pcs"))]
+        fn from_set(visited_pcs: &mut VisitedPcs, class_hash: ClassHash, pcs: &Pcs) {
+            visited_pcs.entry(class_hash).or_default().extend(pcs);
+        }
+
+        #[cfg(feature = "full_visited_pcs")]
+        fn from_set(visited_pcs: &mut VisitedPcs, class_hash: ClassHash, pcs: &Pcs) {
+            visited_pcs.entry(class_hash).or_default().push(pcs.to_vec());
+        }
+
+        from_set(&mut self.visited_pcs, class_hash, pcs);
     }
 }
 
