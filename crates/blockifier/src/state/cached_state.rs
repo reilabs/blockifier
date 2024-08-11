@@ -21,16 +21,16 @@ mod test;
 
 pub type ContractClassMapping = HashMap<ClassHash, ContractClass>;
 
-#[cfg(not(feature = "full_visited_pcs"))]
+#[cfg(not(feature = "vector_of_visited_program_counters"))]
 pub type Pcs = HashSet<usize>;
 
-#[cfg(feature = "full_visited_pcs")]
+#[cfg(feature = "vector_of_visited_program_counters")]
 pub type Pcs = Vec<usize>;
 
-#[cfg(not(feature = "full_visited_pcs"))]
+#[cfg(not(feature = "vector_of_visited_program_counters"))]
 pub type VisitedPcs = HashMap<ClassHash, Pcs>;
 
-#[cfg(feature = "full_visited_pcs")]
+#[cfg(feature = "vector_of_visited_program_counters")]
 pub type VisitedPcs = HashMap<ClassHash, Vec<Pcs>>;
 
 /// Caches read and write requests.
@@ -72,12 +72,12 @@ impl<S: StateReader> CachedState<S> {
     }
 
     pub fn get_set_visited_pcs(&self, class_hash: &ClassHash) -> HashSet<usize> {
-        #[cfg(not(feature = "full_visited_pcs"))]
+        #[cfg(not(feature = "vector_of_visited_program_counters"))]
         fn from_set(class_hash: &ClassHash, visited_pcs: &VisitedPcs) -> HashSet<usize> {
             return visited_pcs.get(class_hash).unwrap().clone();
         }
 
-        #[cfg(feature = "full_visited_pcs")]
+        #[cfg(feature = "vector_of_visited_program_counters")]
         fn from_set(class_hash: &ClassHash, visited_pcs: &VisitedPcs) -> HashSet<usize> {
             let class_visited_pcs = visited_pcs.get(class_hash).unwrap();
             let mut visited_pcs_set: HashSet<usize> = HashSet::new();
@@ -307,12 +307,12 @@ impl<S: StateReader> State for CachedState<S> {
     }
 
     fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &Pcs) {
-        #[cfg(not(feature = "full_visited_pcs"))]
+        #[cfg(not(feature = "vector_of_visited_program_counters"))]
         fn from_set(visited_pcs: &mut VisitedPcs, class_hash: ClassHash, pcs: &Pcs) {
             visited_pcs.entry(class_hash).or_default().extend(pcs);
         }
 
-        #[cfg(feature = "full_visited_pcs")]
+        #[cfg(feature = "vector_of_visited_program_counters")]
         fn from_set(visited_pcs: &mut VisitedPcs, class_hash: ClassHash, pcs: &Pcs) {
             visited_pcs.entry(class_hash).or_default().push(pcs.to_vec());
         }

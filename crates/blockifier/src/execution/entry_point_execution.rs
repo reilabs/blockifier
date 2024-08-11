@@ -109,10 +109,10 @@ fn register_visited_pcs(
     bytecode_length: usize,
 ) -> EntryPointExecutionResult<()> {
     fn add_element(pcs: &mut Pcs, element: usize) {
-        #[cfg(not(feature = "full_visited_pcs"))]
+        #[cfg(not(feature = "vector_of_visited_program_counters"))]
         pcs.insert(element);
 
-        #[cfg(feature = "full_visited_pcs")]
+        #[cfg(feature = "vector_of_visited_program_counters")]
         pcs.push(element);
     }
     let mut class_visited_pcs = Pcs::new();
