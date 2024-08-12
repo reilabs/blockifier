@@ -44,7 +44,11 @@ pub struct CachedState<S: StateReader> {
     // Using interior mutability to update caches during `State`'s immutable getters.
     pub(crate) cache: RefCell<StateCache>,
     pub(crate) class_hash_to_class: RefCell<ContractClassMapping>,
-    /// A map from class hash to the set of PC values that were visited in the class.
+    // A map from class hash the PC values that were visited in the class.
+    //
+    // If the feature `vector_of_visited_program_counters` is selected, `visited_pcs` contains the
+    // full vector of visited program counters for each class hash call. Otherwise, it contains
+    // the just the set of visited program counters.
     pub visited_pcs: VisitedPcs,
 }
 
@@ -71,6 +75,7 @@ impl<S: StateReader> CachedState<S> {
         Ok(self.to_state_diff()?.into())
     }
 
+    /// Returns the set of visited program counters given a `class_hash`.
     pub fn get_set_visited_pcs(&self, class_hash: &ClassHash) -> HashSet<usize> {
         #[cfg(not(feature = "vector_of_visited_program_counters"))]
         fn from_set(class_hash: &ClassHash, visited_pcs: &VisitedPcs) -> HashSet<usize> {
@@ -105,8 +110,28 @@ impl<S: StateReader> CachedState<S> {
     }
 
     pub fn update_visited_pcs_cache(&mut self, visited_pcs: &VisitedPcs) {
+        #[cfg(not(feature = "vector_of_visited_program_counters"))]
+        fn from_set<S: StateReader>(
+            cached_state: &mut CachedState<S>,
+            class_hash: &ClassHash,
+            visited_pcs: &Pcs,
+        ) {
+            cached_state.add_visited_pcs(*class_hash, visited_pcs);
+        }
+
+        #[cfg(feature = "vector_of_visited_program_counters")]
+        fn from_set<S: StateReader>(
+            cached_state: &mut CachedState<S>,
+            class_hash: &ClassHash,
+            visited_pcs: &Vec<Vec<usize>>,
+        ) {
+            for pcs in visited_pcs {
+                cached_state.add_visited_pcs(*class_hash, pcs);
+            }
+        }
+
         for (class_hash, class_visited_pcs) in visited_pcs {
-            self.visited_pcs.entry(*class_hash).or_default().extend(class_visited_pcs.clone());
+            from_set(self, class_hash, class_visited_pcs);
         }
     }
 
