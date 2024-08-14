@@ -1,6 +1,4 @@
 #[cfg(feature = "concurrency")]
-use std::collections::{HashMap, HashSet};
-#[cfg(feature = "concurrency")]
 use std::panic::{self, catch_unwind, AssertUnwindSafe};
 #[cfg(feature = "concurrency")]
 use std::sync::Arc;
@@ -221,6 +219,7 @@ impl<S: StateReader + Send + Sync> TransactionExecutor<S> {
         chunk: &[Transaction],
     ) -> Vec<TransactionExecutorResult<TransactionExecutionInfo>> {
         use crate::concurrency::utils::AbortIfPanic;
+        use crate::state::cached_state::VisitedPcs;
 
         let block_state = self.block_state.take().expect("The block state should be `Some`.");
 
@@ -264,7 +263,7 @@ impl<S: StateReader + Send + Sync> TransactionExecutor<S> {
 
         let n_committed_txs = worker_executor.scheduler.get_n_committed_txs();
         let mut tx_execution_results = Vec::new();
-        let mut visited_pcs: HashMap<ClassHash, HashSet<usize>> = HashMap::new();
+        let mut visited_pcs: VisitedPcs = VisitedPcs::new();
         for execution_output in worker_executor.execution_outputs.iter() {
             if tx_execution_results.len() >= n_committed_txs {
                 break;

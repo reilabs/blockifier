@@ -21,6 +21,8 @@ mod test;
 
 pub type ContractClassMapping = HashMap<ClassHash, ContractClass>;
 
+pub type VisitedPcs = HashMap<ClassHash, HashSet<usize>>;
+
 /// Caches read and write requests.
 ///
 /// Writer functionality is builtin, whereas Reader functionality is injected through
@@ -33,7 +35,7 @@ pub struct CachedState<S: StateReader> {
     pub(crate) cache: RefCell<StateCache>,
     pub(crate) class_hash_to_class: RefCell<ContractClassMapping>,
     /// A map from class hash to the set of PC values that were visited in the class.
-    pub visited_pcs: HashMap<ClassHash, HashSet<usize>>,
+    pub visited_pcs: VisitedPcs,
 }
 
 impl<S: StateReader> CachedState<S> {
@@ -42,7 +44,7 @@ impl<S: StateReader> CachedState<S> {
             state,
             cache: RefCell::new(StateCache::default()),
             class_hash_to_class: RefCell::new(HashMap::default()),
-            visited_pcs: HashMap::default(),
+            visited_pcs: VisitedPcs::default(),
         }
     }
 
@@ -73,7 +75,7 @@ impl<S: StateReader> CachedState<S> {
         self.class_hash_to_class.get_mut().extend(local_contract_cache_updates);
     }
 
-    pub fn update_visited_pcs_cache(&mut self, visited_pcs: &HashMap<ClassHash, HashSet<usize>>) {
+    pub fn update_visited_pcs_cache(&mut self, visited_pcs: &VisitedPcs) {
         for (class_hash, class_visited_pcs) in visited_pcs {
             self.add_visited_pcs(*class_hash, class_visited_pcs);
         }
@@ -112,7 +114,7 @@ impl<S: StateReader> UpdatableState for CachedState<S> {
         &mut self,
         writes: &StateMaps,
         class_hash_to_class: &ContractClassMapping,
-        visited_pcs: &HashMap<ClassHash, HashSet<usize>>,
+        visited_pcs: &VisitedPcs,
     ) {
         // TODO(Noa,15/5/24): Reconsider the clone.
         self.update_cache(writes, class_hash_to_class.clone());
