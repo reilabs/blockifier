@@ -261,7 +261,7 @@ impl<S: StateReader + Send + Sync> TransactionExecutor<S> {
             tx_execution_results
                 .push(locked_execution_output.result.map_err(TransactionExecutorError::from));
             for (class_hash, class_visited_pcs) in locked_execution_output.visited_pcs {
-                visited_pcs.entry(class_hash).or_default().extend(class_visited_pcs.clone());
+                visited_pcs.entry(class_hash).or_default().extend(class_visited_pcs);
             }
         }
 
