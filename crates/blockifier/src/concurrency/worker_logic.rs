@@ -1,10 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
-
-use starknet_api::core::ClassHash;
 
 use super::versioned_state::VersionedState;
 use crate::blockifier::transaction_executor::TransactionExecutorError;
@@ -16,7 +14,7 @@ use crate::concurrency::versioned_state::ThreadSafeVersionedState;
 use crate::concurrency::TxIndex;
 use crate::context::BlockContext;
 use crate::state::cached_state::{
-    ContractClassMapping, StateChanges, StateMaps, TransactionalState,
+    ContractClassMapping, StateChanges, StateMaps, TransactionalState, VisitedPcs,
 };
 use crate::state::state_api::{StateReader, UpdatableState};
 use crate::transaction::objects::{TransactionExecutionInfo, TransactionExecutionResult};
@@ -34,7 +32,7 @@ pub struct ExecutionTaskOutput {
     pub reads: StateMaps,
     pub writes: StateMaps,
     pub contract_classes: ContractClassMapping,
-    pub visited_pcs: HashMap<ClassHash, HashSet<usize>>,
+    pub visited_pcs: VisitedPcs,
     pub result: TransactionExecutionResult<TransactionExecutionInfo>,
 }
 
@@ -264,7 +262,7 @@ impl<'a, U: UpdatableState> WorkerExecutor<'a, U> {
     pub fn commit_chunk_and_recover_block_state(
         self,
         n_committed_txs: usize,
-        visited_pcs: HashMap<ClassHash, HashSet<usize>>,
+        visited_pcs: VisitedPcs,
     ) -> U {
         self.state
             .into_inner_state()
