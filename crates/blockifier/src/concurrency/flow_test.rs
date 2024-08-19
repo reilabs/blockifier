@@ -9,9 +9,10 @@ use starknet_api::{contract_address, felt, patricia_key};
 use crate::abi::sierra_types::{SierraType, SierraU128};
 use crate::concurrency::scheduler::{Scheduler, Task, TransactionStatus};
 use crate::concurrency::test_utils::{safe_versioned_state_for_testing, DEFAULT_CHUNK_SIZE};
-use crate::concurrency::versioned_state::ThreadSafeVersionedState;
+use crate::concurrency::versioned_state::{ThreadSafeVersionedState, VersionedStateProxy};
 use crate::state::cached_state::{CachedState, ContractClassMapping, StateMaps};
 use crate::state::state_api::UpdatableState;
+use crate::state::visited_pcs::VisitedPcsSet;
 use crate::storage_key;
 use crate::test_utils::dict_state_reader::DictStateReader;
 
@@ -27,6 +28,9 @@ fn scheduler_flow_test(
     // transactions with multiple threads, where every transaction depends on its predecessor. Each
     // transaction sequentially advances a counter by reading the previous value and bumping it by
     // 1.
+
+    use crate::concurrency::versioned_state::VersionedStateProxy;
+    use crate::state::visited_pcs::VisitedPcsSet;
     let scheduler = Arc::new(Scheduler::new(DEFAULT_CHUNK_SIZE));
     let versioned_state =
         safe_versioned_state_for_testing(CachedState::from(DictStateReader::default()));
@@ -53,7 +57,7 @@ fn scheduler_flow_test(
                             state_proxy.apply_writes(
                                 &new_writes,
                                 &ContractClassMapping::default(),
-                                &HashMap::default(),
+                                &VisitedPcsSet::default(),
                             );
                             scheduler.finish_execution_during_commit(tx_index);
                         }
@@ -66,13 +70,14 @@ fn scheduler_flow_test(
                         versioned_state.pin_version(tx_index).apply_writes(
                             &writes,
                             &ContractClassMapping::default(),
-                            &HashMap::default(),
+                            &VisitedPcsSet::default(),
                         );
                         scheduler.finish_execution(tx_index);
                         Task::AskForTask
                     }
                     Task::ValidationTask(tx_index) => {
-                        let state_proxy = versioned_state.pin_version(tx_index);
+                        let state_proxy: VersionedStateProxy<_, VisitedPcsSet> =
+                            versioned_state.pin_version(tx_index);
                         let (reads, writes) =
                             get_reads_writes_for(Task::ValidationTask(tx_index), &versioned_state);
                         let read_set_valid = state_proxy.validate_reads(&reads);
@@ -120,11 +125,11 @@ fn scheduler_flow_test(
 
 fn get_reads_writes_for(
     task: Task,
-    versioned_state: &ThreadSafeVersionedState<CachedState<DictStateReader>>,
+    versioned_state: &ThreadSafeVersionedState<CachedState<DictStateReader, VisitedPcsSet>>,
 ) -> (StateMaps, StateMaps) {
     match task {
         Task::ExecutionTask(tx_index) => {
-            let state_proxy = match tx_index {
+            let state_proxy: VersionedStateProxy<_, VisitedPcsSet> = match tx_index {
                 0 => {
                     return (
                         state_maps_with_single_storage_entry(0),
@@ -146,7 +151,8 @@ fn get_reads_writes_for(
             )
         }
         Task::ValidationTask(tx_index) => {
-            let state_proxy = versioned_state.pin_version(tx_index);
+            let state_proxy: VersionedStateProxy<_, VisitedPcsSet> =
+                versioned_state.pin_version(tx_index);
             let tx_written_value = SierraU128::from_storage(
                 &state_proxy,
                 &contract_address!(CONTRACT_ADDRESS),
