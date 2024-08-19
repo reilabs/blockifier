@@ -7,9 +7,10 @@ use starknet_types_core::felt::Felt;
 use crate::concurrency::versioned_storage::VersionedStorage;
 use crate::concurrency::TxIndex;
 use crate::execution::contract_class::ContractClass;
-use crate::state::cached_state::{ContractClassMapping, StateMaps, VisitedPcs};
+use crate::state::cached_state::{ContractClassMapping, StateMaps};
 use crate::state::errors::StateError;
 use crate::state::state_api::{StateReader, StateResult, UpdatableState};
+use crate::state::visited_pcs::VisitedPcsSet;
 
 #[cfg(test)]
 #[path = "versioned_state_test.rs"]
@@ -201,7 +202,7 @@ impl<U: UpdatableState> VersionedState<U> {
     pub fn commit_chunk_and_recover_block_state(
         mut self,
         n_committed_txs: usize,
-        visited_pcs: VisitedPcs,
+        visited_pcs: VisitedPcsSet,
     ) -> U {
         if n_committed_txs == 0 {
             return self.into_initial_state();
@@ -276,7 +277,7 @@ impl<S: StateReader> UpdatableState for VersionedStateProxy<S> {
         &mut self,
         writes: &StateMaps,
         class_hash_to_class: &ContractClassMapping,
-        _visited_pcs: &VisitedPcs,
+        _visited_pcs: &VisitedPcsSet,
     ) {
         self.state().apply_writes(self.tx_index, writes, class_hash_to_class)
     }

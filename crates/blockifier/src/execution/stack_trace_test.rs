@@ -456,6 +456,8 @@ fn test_validate_trace(
     #[case] tx_version: TransactionVersion,
     #[values(CairoVersion::Cairo0, CairoVersion::Cairo1)] cairo_version: CairoVersion,
 ) {
+    use crate::state::visited_pcs::VisitedPcsSet;
+
     let create_for_account_testing = &BlockContext::create_for_account_testing();
     let block_context = create_for_account_testing;
     let faulty_account = FeatureContract::FaultyAccount(cairo_version);
@@ -513,7 +515,14 @@ Execution failed. Failure reason: 0x496e76616c6964207363656e6172696f ('Invalid s
     // Clean pc locations from the trace.
     let re = Regex::new(r"pc=0:[0-9]+").unwrap();
     let cleaned_expected_error = &re.replace_all(&expected_error, "pc=0:*");
-    let actual_error = account_tx.execute(state, block_context, true, true).unwrap_err();
+    let actual_error = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap_err();
     let actual_error_str = actual_error.to_string();
     let cleaned_actual_error = &re.replace_all(&actual_error_str, "pc=0:*");
     // Compare actual trace to the expected trace (sans pc locations).
@@ -527,6 +536,8 @@ fn test_account_ctor_frame_stack_trace(
     block_context: BlockContext,
     #[values(CairoVersion::Cairo0, CairoVersion::Cairo1)] cairo_version: CairoVersion,
 ) {
+    use crate::state::visited_pcs::VisitedPcsSet;
+
     let chain_info = &block_context.chain_info;
     let faulty_account = FeatureContract::FaultyAccount(cairo_version);
     let state = &mut test_state(chain_info, BALANCE, &[(faulty_account, 0)]);
@@ -576,7 +587,14 @@ An ASSERT_EQ instruction failed: 1 != 0.
     };
 
     // Compare expected and actual error.
-    let error = deploy_account_tx.execute(state, &block_context, true, true).unwrap_err();
+    let error = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &deploy_account_tx,
+        state,
+        &block_context,
+        true,
+        true,
+    )
+    .unwrap_err();
     assert_eq!(error.to_string(), expected_error);
 }
 
@@ -589,6 +607,8 @@ fn test_contract_ctor_frame_stack_trace(
     max_resource_bounds: ResourceBoundsMapping,
     #[values(CairoVersion::Cairo0, CairoVersion::Cairo1)] cairo_version: CairoVersion,
 ) {
+    use crate::state::visited_pcs::VisitedPcsSet;
+
     let chain_info = &block_context.chain_info;
     let account = FeatureContract::AccountWithoutValidations(cairo_version);
     let faulty_ctor = FeatureContract::FaultyAccount(cairo_version);
@@ -708,7 +728,15 @@ Execution failed. Failure reason: 0x496e76616c6964207363656e6172696f ('Invalid s
     };
 
     // Compare expected and actual error.
-    let error =
-        invoke_deploy_tx.execute(state, &block_context, true, true).unwrap().revert_error.unwrap();
+    let error = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &invoke_deploy_tx,
+        state,
+        &block_context,
+        true,
+        true,
+    )
+    .unwrap()
+    .revert_error
+    .unwrap();
     assert_eq!(error.to_string(), expected_error);
 }

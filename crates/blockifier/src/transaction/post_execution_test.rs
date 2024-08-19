@@ -68,6 +68,8 @@ fn test_revert_on_overdraft(
     #[case] fee_type: FeeType,
     #[values(CairoVersion::Cairo0)] cairo_version: CairoVersion,
 ) {
+    use crate::state::visited_pcs::VisitedPcsSet;
+
     let chain_info = &block_context.chain_info;
     let fee_token_address = chain_info.fee_token_addresses.get_by_fee_type(&fee_type);
     // An address to be written into to observe state changes.
@@ -108,8 +110,14 @@ fn test_revert_on_overdraft(
         nonce: nonce_manager.next(account_address),
     });
     let tx_info = approve_tx.create_tx_info();
-    let approval_execution_info =
-        approve_tx.execute(&mut state, &block_context, true, true).unwrap();
+    let approval_execution_info = <AccountTransaction as ExecutableTransaction<
+        _,
+        _,
+        VisitedPcsSet,
+    >>::execute(
+        &approve_tx, &mut state, &block_context, true, true
+    )
+    .unwrap();
     assert!(!approval_execution_info.is_reverted());
 
     // Transfer a valid amount of funds to compute the cost of a successful

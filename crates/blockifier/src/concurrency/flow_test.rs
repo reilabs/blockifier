@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
@@ -12,6 +12,7 @@ use crate::concurrency::test_utils::{safe_versioned_state_for_testing, DEFAULT_C
 use crate::concurrency::versioned_state::ThreadSafeVersionedState;
 use crate::state::cached_state::{CachedState, ContractClassMapping, StateMaps};
 use crate::state::state_api::UpdatableState;
+use crate::state::visited_pcs::VisitedPcsSet;
 use crate::storage_key;
 use crate::test_utils::dict_state_reader::DictStateReader;
 
@@ -27,6 +28,8 @@ fn scheduler_flow_test(
     // transactions with multiple threads, where every transaction depends on its predecessor. Each
     // transaction sequentially advances a counter by reading the previous value and bumping it by
     // 1.
+
+    use crate::state::visited_pcs::VisitedPcsSet;
     let scheduler = Arc::new(Scheduler::new(DEFAULT_CHUNK_SIZE));
     let versioned_state =
         safe_versioned_state_for_testing(CachedState::from(DictStateReader::default()));
@@ -53,7 +56,7 @@ fn scheduler_flow_test(
                             state_proxy.apply_writes(
                                 &new_writes,
                                 &ContractClassMapping::default(),
-                                &HashMap::default(),
+                                &VisitedPcsSet::default(),
                             );
                             scheduler.finish_execution_during_commit(tx_index);
                         }
@@ -66,7 +69,7 @@ fn scheduler_flow_test(
                         versioned_state.pin_version(tx_index).apply_writes(
                             &writes,
                             &ContractClassMapping::default(),
-                            &HashMap::default(),
+                            &VisitedPcsSet::default(),
                         );
                         scheduler.finish_execution(tx_index);
                         Task::AskForTask
@@ -120,7 +123,9 @@ fn scheduler_flow_test(
 
 fn get_reads_writes_for(
     task: Task,
-    versioned_state: &ThreadSafeVersionedState<CachedState<DictStateReader>>,
+    versioned_state: &ThreadSafeVersionedState<
+        CachedState<HashSet<usize>, DictStateReader, VisitedPcsSet>,
+    >,
 ) -> (StateMaps, StateMaps) {
     match task {
         Task::ExecutionTask(tx_index) => {

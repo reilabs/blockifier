@@ -14,9 +14,10 @@ use crate::concurrency::versioned_state::ThreadSafeVersionedState;
 use crate::concurrency::TxIndex;
 use crate::context::BlockContext;
 use crate::state::cached_state::{
-    ContractClassMapping, StateChanges, StateMaps, TransactionalState, VisitedPcs,
+    ContractClassMapping, StateChanges, StateMaps, TransactionalState,
 };
 use crate::state::state_api::{StateReader, UpdatableState};
+use crate::state::visited_pcs::VisitedPcsSet;
 use crate::transaction::objects::{TransactionExecutionInfo, TransactionExecutionResult};
 use crate::transaction::transaction_execution::Transaction;
 use crate::transaction::transactions::{ExecutableTransaction, ExecutionFlags};
@@ -32,7 +33,7 @@ pub struct ExecutionTaskOutput {
     pub reads: StateMaps,
     pub writes: StateMaps,
     pub contract_classes: ContractClassMapping,
-    pub visited_pcs: VisitedPcs,
+    pub visited_pcs: VisitedPcsSet,
     pub result: TransactionExecutionResult<TransactionExecutionInfo>,
 }
 
@@ -135,7 +136,7 @@ impl<'a, S: StateReader> WorkerExecutor<'a, S> {
             self.state.pin_version(tx_index).apply_writes(
                 &transactional_state.cache.borrow().writes,
                 &transactional_state.class_hash_to_class.borrow(),
-                &HashMap::default(),
+                &VisitedPcsSet::default(),
             );
         }
 
@@ -145,7 +146,7 @@ impl<'a, S: StateReader> WorkerExecutor<'a, S> {
         // In case of a failed transaction, we don't record its writes and visited pcs.
         let (writes, contract_classes, visited_pcs) = match execution_result {
             Ok(_) => (tx_reads_writes.writes, class_hash_to_class, transactional_state.visited_pcs),
-            Err(_) => (StateMaps::default(), HashMap::default(), HashMap::default()),
+            Err(_) => (StateMaps::default(), HashMap::default(), VisitedPcsSet::default()),
         };
         let mut execution_output = lock_mutex_in_array(&self.execution_outputs, tx_index);
         *execution_output = Some(ExecutionTaskOutput {
@@ -262,7 +263,7 @@ impl<'a, U: UpdatableState> WorkerExecutor<'a, U> {
     pub fn commit_chunk_and_recover_block_state(
         self,
         n_committed_txs: usize,
-        visited_pcs: VisitedPcs,
+        visited_pcs: VisitedPcsSet,
     ) -> U {
         self.state
             .into_inner_state()

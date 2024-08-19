@@ -26,6 +26,7 @@ use crate::fee::fee_utils::{get_fee_by_gas_vector, get_sequencer_balance_keys};
 use crate::fee::gas_usage::estimate_minimal_gas_vector;
 use crate::state::cached_state::{StateChangesCount, TransactionalState};
 use crate::state::state_api::{State, StateReader};
+use crate::state::visited_pcs::VisitedPcsSet;
 use crate::test_utils::contracts::FeatureContract;
 use crate::test_utils::declare::declare_tx;
 use crate::test_utils::deploy_account::deploy_account_tx;
@@ -130,6 +131,8 @@ fn test_fee_enforcement(
     #[values(TransactionVersion::ONE, TransactionVersion::THREE)] version: TransactionVersion,
     #[values(true, false)] zero_bounds: bool,
 ) {
+    use crate::state::visited_pcs::VisitedPcsSet;
+
     let account = FeatureContract::AccountWithoutValidations(CairoVersion::Cairo0);
     let state = &mut test_state(&block_context.chain_info, BALANCE, &[(account, 1)]);
     let deploy_account_tx = deploy_account_tx(
@@ -144,7 +147,13 @@ fn test_fee_enforcement(
 
     let account_tx = AccountTransaction::DeployAccount(deploy_account_tx);
     let enforce_fee = account_tx.create_tx_info().enforce_fee().unwrap();
-    let result = account_tx.execute(state, &block_context, true, true);
+    let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &account_tx,
+        state,
+        &block_context,
+        true,
+        true,
+    );
     assert_eq!(result.is_err(), enforce_fee);
 }
 
@@ -333,7 +342,14 @@ fn test_max_fee_limit_validate(
         },
         class_info,
     );
-    account_tx.execute(&mut state, &block_context, true, true).unwrap();
+    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &account_tx,
+        &mut state,
+        &block_context,
+        true,
+        true,
+    )
+    .unwrap();
 
     // Deploy grindy account with a lot of grind in the constructor.
     // Expect this to fail without bumping nonce, so pass a temporary nonce manager.
@@ -349,8 +365,15 @@ fn test_max_fee_limit_validate(
             constructor_calldata: calldata![ctor_grind_arg, ctor_storage_arg],
         },
     );
-    let error_trace =
-        deploy_account_tx.execute(&mut state, &block_context, true, true).unwrap_err().to_string();
+    let error_trace = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &deploy_account_tx,
+        &mut state,
+        &block_context,
+        true,
+        true,
+    )
+    .unwrap_err()
+    .to_string();
     assert!(error_trace.contains("no remaining steps"));
 
     // Deploy grindy account successfully this time.
@@ -365,7 +388,14 @@ fn test_max_fee_limit_validate(
             constructor_calldata: calldata![ctor_grind_arg, ctor_storage_arg],
         },
     );
-    deploy_account_tx.execute(&mut state, &block_context, true, true).unwrap();
+    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &deploy_account_tx,
+        &mut state,
+        &block_context,
+        true,
+        true,
+    )
+    .unwrap();
 
     // Invoke a function that grinds validate (any function will do); set bounds low enough to fail
     // on this grind.
@@ -554,6 +584,8 @@ fn test_fail_deploy_account(
     #[values(CairoVersion::Cairo0, CairoVersion::Cairo1)] cairo_version: CairoVersion,
     #[values(TransactionVersion::ONE, TransactionVersion::THREE)] tx_version: TransactionVersion,
 ) {
+    use crate::state::visited_pcs::VisitedPcsSet;
+
     let chain_info = &block_context.chain_info;
     let faulty_account_feature_contract = FeatureContract::FaultyAccount(cairo_version);
     let state = &mut test_state(chain_info, BALANCE, &[(faulty_account_feature_contract, 0)]);
@@ -578,7 +610,14 @@ fn test_fail_deploy_account(
 
     let initial_balance = state.get_fee_token_balance(deploy_address, fee_token_address).unwrap();
 
-    let error = deploy_account_tx.execute(state, &block_context, true, true).unwrap_err();
+    let error = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &deploy_account_tx,
+        state,
+        &block_context,
+        true,
+        true,
+    )
+    .unwrap_err();
     // Check the error is as expected. Assure the error message is not nonce or fee related.
     check_transaction_execution_error_for_invalid_scenario!(cairo_version, error, false);
 
@@ -628,7 +667,14 @@ fn test_fail_declare(block_context: BlockContext, max_fee: Fee) {
     let initial_balance = state
         .get_fee_token_balance(account_address, chain_info.fee_token_address(&tx_info.fee_type()))
         .unwrap();
-    declare_account_tx.execute(&mut state, &block_context, true, true).unwrap_err();
+    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &declare_account_tx,
+        &mut state,
+        &block_context,
+        true,
+        true,
+    )
+    .unwrap_err();
 
     assert_eq!(state.get_nonce_at(account_address).unwrap(), next_nonce);
     assert_eq!(
@@ -904,7 +950,15 @@ fn test_max_fee_to_max_steps_conversion(
     let tx_context1 = Arc::new(block_context.to_tx_context(&account_tx1));
     let execution_context1 = EntryPointExecutionContext::new_invoke(tx_context1, true).unwrap();
     let max_steps_limit1 = execution_context1.vm_run_resources.get_n_steps();
-    let tx_execution_info1 = account_tx1.execute(&mut state, &block_context, true, true).unwrap();
+    let tx_execution_info1 =
+        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+            &account_tx1,
+            &mut state,
+            &block_context,
+            true,
+            true,
+        )
+        .unwrap();
     let n_steps1 = tx_execution_info1.transaction_receipt.resources.vm_resources.n_steps;
     let gas_used_vector1 = tx_execution_info1
         .transaction_receipt
@@ -924,7 +978,15 @@ fn test_max_fee_to_max_steps_conversion(
     let tx_context2 = Arc::new(block_context.to_tx_context(&account_tx2));
     let execution_context2 = EntryPointExecutionContext::new_invoke(tx_context2, true).unwrap();
     let max_steps_limit2 = execution_context2.vm_run_resources.get_n_steps();
-    let tx_execution_info2 = account_tx2.execute(&mut state, &block_context, true, true).unwrap();
+    let tx_execution_info2 =
+        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+            &account_tx2,
+            &mut state,
+            &block_context,
+            true,
+            true,
+        )
+        .unwrap();
     let n_steps2 = tx_execution_info2.transaction_receipt.resources.vm_resources.n_steps;
     let gas_used_vector2 = tx_execution_info2
         .transaction_receipt
@@ -1043,7 +1105,14 @@ fn test_deploy_account_constructor_storage_write(
             constructor_calldata: constructor_calldata.clone(),
         },
     );
-    deploy_account_tx.execute(state, &block_context, true, true).unwrap();
+    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &deploy_account_tx,
+        state,
+        &block_context,
+        true,
+        true,
+    )
+    .unwrap();
 
     // Check that the constructor wrote ctor_arg to the storage.
     let storage_key = get_storage_var_address("ctor_arg", &[]);
@@ -1105,7 +1174,8 @@ fn test_count_actual_storage_changes(
     // Run transactions; using transactional state to count only storage changes of the current
     // transaction.
     // First transaction: storage cell value changes from 0 to 1.
-    let mut state = TransactionalState::create_transactional(&mut state);
+    let mut state: TransactionalState<'_, HashSet<usize>, _, VisitedPcsSet> =
+        TransactionalState::create_transactional(&mut state);
     let invoke_args = invoke_tx_args! {
         max_fee,
         resource_bounds: max_resource_bounds,
@@ -1155,7 +1225,8 @@ fn test_count_actual_storage_changes(
     assert_eq!(state_changes_count_1, expected_state_changes_count_1);
 
     // Second transaction: storage cell starts and ends with value 1.
-    let mut state = TransactionalState::create_transactional(&mut state);
+    let mut state: TransactionalState<'_, HashSet<usize>, _, VisitedPcsSet> =
+        TransactionalState::create_transactional(&mut state);
     let account_tx = account_invoke_tx(InvokeTxArgs {
         nonce: nonce_manager.next(account_address),
         ..invoke_args.clone()
@@ -1192,7 +1263,8 @@ fn test_count_actual_storage_changes(
     assert_eq!(state_changes_count_2, expected_state_changes_count_2);
 
     // Transfer transaction: transfer 1 ETH to recepient.
-    let mut state = TransactionalState::create_transactional(&mut state);
+    let mut state: TransactionalState<'_, HashSet<usize>, _, VisitedPcsSet> =
+        TransactionalState::create_transactional(&mut state);
     let account_tx = account_invoke_tx(InvokeTxArgs {
         nonce: nonce_manager.next(account_address),
         calldata: transfer_calldata,
@@ -1273,7 +1345,8 @@ fn test_concurrency_execute_fee_transfer(
 
     // Case 1: The transaction did not read form/ write to the sequenser balance before executing
     // fee transfer.
-    let mut transactional_state = TransactionalState::create_transactional(state);
+    let mut transactional_state: TransactionalState<'_, HashSet<usize>, _, VisitedPcsSet> =
+        TransactionalState::create_transactional(state);
     let execution_flags =
         ExecutionFlags { charge_fee: true, validate: true, concurrency_mode: true };
     let result =
@@ -1305,7 +1378,8 @@ fn test_concurrency_execute_fee_transfer(
         SEQUENCER_BALANCE_LOW_INITIAL,
         &mut state.state,
     );
-    let mut transactional_state = TransactionalState::create_transactional(state);
+    let mut transactional_state: TransactionalState<'_, HashSet<usize>, _, VisitedPcsSet> =
+        TransactionalState::create_transactional(state);
 
     // Invokes transfer to the sequencer.
     let account_tx = account_invoke_tx(invoke_tx_args! {
@@ -1369,7 +1443,8 @@ fn test_concurrent_fee_transfer_when_sender_is_sequencer(
     let fee_type = &account_tx.fee_type();
     let fee_token_address = block_context.chain_info.fee_token_address(fee_type);
 
-    let mut transactional_state = TransactionalState::create_transactional(state);
+    let mut transactional_state: TransactionalState<'_, HashSet<usize>, _, VisitedPcsSet> =
+        TransactionalState::create_transactional(state);
     let execution_flags =
         ExecutionFlags { charge_fee: true, validate: true, concurrency_mode: true };
     let result =

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use rstest::fixture;
 use starknet_api::core::{ClassHash, ContractAddress, Nonce};
 use starknet_api::transaction::{
@@ -14,6 +16,7 @@ use crate::context::{BlockContext, ChainInfo};
 use crate::execution::contract_class::{ClassInfo, ContractClass};
 use crate::state::cached_state::CachedState;
 use crate::state::state_api::State;
+use crate::state::visited_pcs::VisitedPcsSet;
 use crate::test_utils::contracts::FeatureContract;
 use crate::test_utils::declare::declare_tx;
 use crate::test_utils::deploy_account::{deploy_account_tx, DeployAccountTxArgs};
@@ -79,7 +82,7 @@ pub fn block_context() -> BlockContext {
 
 /// Struct containing the data usually needed to initialize a test.
 pub struct TestInitData {
-    pub state: CachedState<DictStateReader>,
+    pub state: CachedState<HashSet<usize>, DictStateReader, VisitedPcsSet>,
     pub account_address: ContractAddress,
     pub contract_address: ContractAddress,
     pub nonce_manager: NonceManager,
@@ -88,7 +91,7 @@ pub struct TestInitData {
 /// Deploys a new account with the given class hash, funds with both fee tokens, and returns the
 /// deploy tx and address.
 pub fn deploy_and_fund_account(
-    state: &mut CachedState<DictStateReader>,
+    state: &mut CachedState<HashSet<usize>, DictStateReader, VisitedPcsSet>,
     nonce_manager: &mut NonceManager,
     chain_info: &ChainInfo,
     deploy_tx_args: DeployAccountTxArgs,
@@ -268,11 +271,18 @@ pub fn account_invoke_tx(invoke_args: InvokeTxArgs) -> AccountTransaction {
 }
 
 pub fn run_invoke_tx(
-    state: &mut CachedState<DictStateReader>,
+    state: &mut CachedState<HashSet<usize>, DictStateReader, VisitedPcsSet>,
     block_context: &BlockContext,
     invoke_args: InvokeTxArgs,
 ) -> TransactionExecutionResult<TransactionExecutionInfo> {
-    account_invoke_tx(invoke_args).execute(state, block_context, true, true)
+    let account_tx = account_invoke_tx(invoke_args);
+    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
 }
 
 /// Creates a `ResourceBoundsMapping` with the given `max_amount` and `max_price` for L1 gas limits.

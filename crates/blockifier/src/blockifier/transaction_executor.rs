@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 #[cfg(feature = "concurrency")]
 use std::panic::{self, catch_unwind, AssertUnwindSafe};
 #[cfg(feature = "concurrency")]
@@ -18,6 +19,7 @@ use crate::context::BlockContext;
 use crate::state::cached_state::{CachedState, CommitmentStateDiff, TransactionalState};
 use crate::state::errors::StateError;
 use crate::state::state_api::StateReader;
+use crate::state::visited_pcs::{VisitedPcsSet, VisitedPcsTrait};
 use crate::transaction::errors::TransactionExecutionError;
 use crate::transaction::objects::TransactionExecutionInfo;
 use crate::transaction::transaction_execution::Transaction;
@@ -43,7 +45,7 @@ pub type TransactionExecutorResult<T> = Result<T, TransactionExecutorError>;
 pub type VisitedSegmentsMapping = Vec<(ClassHash, Vec<usize>)>;
 
 // TODO(Gilad): make this hold TransactionContext instead of BlockContext.
-pub struct TransactionExecutor<S: StateReader> {
+pub struct TransactionExecutor<T, S: StateReader, V: VisitedPcsTrait<T>> {
     pub block_context: BlockContext,
     pub bouncer: Bouncer,
     // Note: this config must not affect the execution result (e.g. state diff and traces).
@@ -54,12 +56,12 @@ pub struct TransactionExecutor<S: StateReader> {
     // block state to the worker executor - operating at the chunk level - and gets it back after
     // committing the chunk. The block state is wrapped with an Option<_> to allow setting it to
     // `None` while it is moved to the worker executor.
-    pub block_state: Option<CachedState<S>>,
+    pub block_state: Option<CachedState<T, S, V>>,
 }
 
-impl<S: StateReader> TransactionExecutor<S> {
+impl<T, S: StateReader, V: VisitedPcsTrait<T>> TransactionExecutor<T, S, V> {
     pub fn new(
-        block_state: CachedState<S>,
+        block_state: CachedState<T, S, V>,
         block_context: BlockContext,
         config: TransactionExecutorConfig,
     ) -> Self {
@@ -85,9 +87,10 @@ impl<S: StateReader> TransactionExecutor<S> {
         &mut self,
         tx: &Transaction,
     ) -> TransactionExecutorResult<TransactionExecutionInfo> {
-        let mut transactional_state = TransactionalState::create_transactional(
-            self.block_state.as_mut().expect(BLOCK_STATE_ACCESS_ERR),
-        );
+        let mut transactional_state: TransactionalState<'_, HashSet<usize>, _, VisitedPcsSet> =
+            TransactionalState::create_transactional(
+                self.block_state.as_mut().expect(BLOCK_STATE_ACCESS_ERR),
+            );
         // Executing a single transaction cannot be done in a concurrent mode.
         let execution_flags =
             ExecutionFlags { charge_fee: true, validate: true, concurrency_mode: false };
@@ -170,7 +173,9 @@ impl<S: StateReader> TransactionExecutor<S> {
     }
 }
 
-impl<S: StateReader + Send + Sync> TransactionExecutor<S> {
+impl<T: Send + Sync, S: StateReader + Send + Sync, V: VisitedPcsTrait<T> + Send + Sync>
+    TransactionExecutor<T, S, V>
+{
     /// Executes the given transactions on the state maintained by the executor.
     /// Stops if and when there is no more room in the block, and returns the executed transactions'
     /// results.
@@ -219,7 +224,7 @@ impl<S: StateReader + Send + Sync> TransactionExecutor<S> {
         chunk: &[Transaction],
     ) -> Vec<TransactionExecutorResult<TransactionExecutionInfo>> {
         use crate::concurrency::utils::AbortIfPanic;
-        use crate::state::cached_state::VisitedPcs;
+        use crate::state::visited_pcs::VisitedPcsSet;
 
         let block_state = self.block_state.take().expect("The block state should be `Some`.");
 
@@ -263,7 +268,7 @@ impl<S: StateReader + Send + Sync> TransactionExecutor<S> {
 
         let n_committed_txs = worker_executor.scheduler.get_n_committed_txs();
         let mut tx_execution_results = Vec::new();
-        let mut visited_pcs: VisitedPcs = VisitedPcs::new();
+        let mut visited_pcs: VisitedPcsSet = VisitedPcsSet::new();
         for execution_output in worker_executor.execution_outputs.iter() {
             if tx_execution_results.len() >= n_committed_txs {
                 break;

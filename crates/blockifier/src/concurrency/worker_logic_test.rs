@@ -22,6 +22,7 @@ use crate::context::{BlockContext, TransactionContext};
 use crate::fee::fee_utils::get_sequencer_balance_keys;
 use crate::state::cached_state::StateMaps;
 use crate::state::state_api::StateReader;
+use crate::state::visited_pcs::VisitedPcsSet;
 use crate::test_utils::contracts::FeatureContract;
 use crate::test_utils::declare::declare_tx;
 use crate::test_utils::initial_test_state::test_state;
@@ -383,7 +384,7 @@ fn test_worker_execute(max_resource_bounds: ResourceBoundsMapping) {
 
     assert_eq!(execution_output.writes, writes);
     assert_eq!(execution_output.reads, reads);
-    assert_ne!(execution_output.visited_pcs, HashMap::default());
+    assert_ne!(execution_output.visited_pcs, VisitedPcsSet::default());
 
     // Failed execution.
     let tx_index = 1;
@@ -402,7 +403,7 @@ fn test_worker_execute(max_resource_bounds: ResourceBoundsMapping) {
     };
     assert_eq!(execution_output.reads, reads);
     assert_eq!(execution_output.writes, StateMaps::default());
-    assert_eq!(execution_output.visited_pcs, HashMap::default());
+    assert_eq!(execution_output.visited_pcs, VisitedPcsSet::default());
 
     // Reverted execution.
     let tx_index = 2;
@@ -416,7 +417,7 @@ fn test_worker_execute(max_resource_bounds: ResourceBoundsMapping) {
     let execution_output = execution_output.as_ref().unwrap();
     assert!(execution_output.result.as_ref().unwrap().is_reverted());
     assert_ne!(execution_output.writes, StateMaps::default());
-    assert_ne!(execution_output.visited_pcs, HashMap::default());
+    assert_ne!(execution_output.visited_pcs, VisitedPcsSet::default());
 
     // Validate status change.
     for tx_index in 0..3 {
