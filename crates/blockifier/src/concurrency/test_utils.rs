@@ -7,6 +7,7 @@ use crate::context::BlockContext;
 use crate::execution::call_info::CallInfo;
 use crate::state::cached_state::{CachedState, TransactionalState};
 use crate::state::state_api::StateReader;
+use crate::state::visited_pcs::{VisitedPcs, VisitedPcsSet};
 use crate::test_utils::dict_state_reader::DictStateReader;
 use crate::transaction::account_transaction::AccountTransaction;
 use crate::transaction::transactions::{ExecutableTransaction, ExecutionFlags};
@@ -61,21 +62,22 @@ macro_rules! default_scheduler {
 
 // TODO(meshi, 01/06/2024): Consider making this a macro.
 pub fn safe_versioned_state_for_testing(
-    block_state: CachedState<DictStateReader>,
-) -> ThreadSafeVersionedState<CachedState<DictStateReader>> {
+    block_state: CachedState<DictStateReader, VisitedPcsSet>,
+) -> ThreadSafeVersionedState<CachedState<DictStateReader, VisitedPcsSet>> {
     ThreadSafeVersionedState::new(VersionedState::new(block_state))
 }
 
 // Utils.
 
 // Note: this function does not mutate the state.
-pub fn create_fee_transfer_call_info<S: StateReader>(
-    state: &mut CachedState<S>,
+pub fn create_fee_transfer_call_info<S: StateReader, V: VisitedPcs>(
+    state: &mut CachedState<S, V>,
     account_tx: &AccountTransaction,
     concurrency_mode: bool,
 ) -> CallInfo {
     let block_context = BlockContext::create_for_account_testing();
-    let mut transactional_state = TransactionalState::create_transactional(state);
+    let mut transactional_state: TransactionalState<'_, _, V> =
+        TransactionalState::create_transactional(state);
     let execution_flags = ExecutionFlags { charge_fee: true, validate: true, concurrency_mode };
     let execution_info =
         account_tx.execute_raw(&mut transactional_state, &block_context, execution_flags).unwrap();

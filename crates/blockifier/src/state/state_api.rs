@@ -1,10 +1,8 @@
-use std::collections::HashSet;
-
 use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::state::StorageKey;
 use starknet_types_core::felt::Felt;
 
-use super::cached_state::{ContractClassMapping, StateMaps, VisitedPcs};
+use super::cached_state::{ContractClassMapping, StateMaps};
 use crate::abi::abi_utils::get_fee_token_var_address;
 use crate::abi::sierra_types::next_storage_key;
 use crate::execution::contract_class::ContractClass;
@@ -107,15 +105,28 @@ pub trait State: StateReader {
     /// Marks the given set of PC values as visited for the given class hash.
     // TODO(lior): Once we have a BlockResources object, move this logic there. Make sure reverted
     //   entry points do not affect the final set of PCs.
-    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &HashSet<usize>);
+    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &Vec<usize>);
 }
 
 /// A class defining the API for updating a state with transactions writes.
 pub trait UpdatableState: StateReader {
+    type T;
+
     fn apply_writes(
         &mut self,
         writes: &StateMaps,
         class_hash_to_class: &ContractClassMapping,
-        visited_pcs: &VisitedPcs,
+        visited_pcs: &Self::T,
+    );
+}
+
+pub trait UpdatableStatetTest: StateReader {
+    type T;
+
+    fn apply_writes(
+        &mut self,
+        writes: &StateMaps,
+        class_hash_to_class: &ContractClassMapping,
+        visited_pcs: &Self::T,
     );
 }
