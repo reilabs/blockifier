@@ -41,7 +41,6 @@ use crate::fee::gas_usage::{
 use crate::state::cached_state::{CachedState, StateChangesCount, TransactionalState};
 use crate::state::errors::StateError;
 use crate::state::state_api::{State, StateReader};
-use crate::state::visited_pcs::VisitedPcsSet;
 use crate::test_utils::contracts::FeatureContract;
 use crate::test_utils::declare::declare_tx;
 use crate::test_utils::deploy_account::deploy_account_tx;
@@ -249,7 +248,7 @@ fn get_expected_cairo_resources(
 /// and the sequencer (in both fee types) are as expected (assuming the initial sequencer balances
 /// are zero).
 fn validate_final_balances(
-    state: &mut CachedState<HashSet<usize>, DictStateReader, VisitedPcsSet>,
+    state: &mut CachedState<DictStateReader>,
     chain_info: &ChainInfo,
     expected_actual_fee: Fee,
     erc20_account_balance_key: StorageKey,
@@ -374,11 +373,13 @@ fn test_invoke_tx(
     let account_tx = AccountTransaction::Invoke(invoke_tx);
     let tx_context = block_context.to_tx_context(&account_tx);
 
-    let actual_execution_info = <AccountTransaction as ExecutableTransaction<
-        _,
-        _,
-        VisitedPcsSet,
-    >>::execute(&account_tx, state, block_context, true, true)
+    let actual_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
     .unwrap();
 
     // Build expected validate call info.
@@ -502,7 +503,7 @@ fn test_invoke_tx(
 
 // Verifies the storage after each invoke execution in test_invoke_tx_advanced_operations.
 fn verify_storage_after_invoke_advanced_operations(
-    state: &mut CachedState<HashSet<usize>, DictStateReader, VisitedPcsSet>,
+    state: &mut CachedState<DictStateReader>,
     contract_address: ContractAddress,
     account_address: ContractAddress,
     index: Felt,
@@ -562,7 +563,7 @@ fn test_invoke_tx_advanced_operations(
             create_calldata(contract_address, "advance_counter", &calldata_args),
         ..base_tx_args.clone()
     });
-    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         state,
         block_context,
@@ -594,7 +595,7 @@ fn test_invoke_tx_advanced_operations(
             create_calldata(contract_address, "call_xor_counters", &calldata_args),
         ..base_tx_args.clone()
     });
-    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         state,
         block_context,
@@ -623,7 +624,7 @@ fn test_invoke_tx_advanced_operations(
             create_calldata(contract_address, "test_ec_op", &[]),
         ..base_tx_args.clone()
     });
-    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         state,
         block_context,
@@ -668,7 +669,7 @@ fn test_invoke_tx_advanced_operations(
             create_calldata(contract_address, "add_signature_to_counters", &[index]),
         ..base_tx_args.clone()
     });
-    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         state,
         block_context,
@@ -700,15 +701,14 @@ fn test_invoke_tx_advanced_operations(
             create_calldata(contract_address, "send_message", &[to_address]),
         ..base_tx_args
     });
-    let execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            state,
-            block_context,
-            true,
-            true,
-        )
-        .unwrap();
+    let execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap();
     let next_nonce = nonce_manager.next(account_address);
     verify_storage_after_invoke_advanced_operations(
         state,
@@ -771,7 +771,7 @@ fn test_state_get_fee_token_balance(
         version: tx_version,
         nonce: Nonce::default(),
     });
-    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         state,
         block_context,
@@ -789,14 +789,14 @@ fn test_state_get_fee_token_balance(
 }
 
 fn assert_failure_if_resource_bounds_exceed_balance(
-    state: &mut CachedState<HashSet<usize>, DictStateReader, VisitedPcsSet>,
+    state: &mut CachedState<DictStateReader>,
     block_context: &BlockContext,
     invalid_tx: AccountTransaction,
 ) {
     match block_context.to_tx_context(&invalid_tx).tx_info {
         TransactionInfo::Deprecated(context) => {
             assert_matches!(
-                    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+                    <AccountTransaction as ExecutableTransaction<_>>::execute(
             &invalid_tx, state, block_context, true, true).unwrap_err(),
                     TransactionExecutionError::TransactionPreValidationError(
                         TransactionPreValidationError::TransactionFeeError(
@@ -807,7 +807,7 @@ fn assert_failure_if_resource_bounds_exceed_balance(
         TransactionInfo::Current(context) => {
             let l1_bounds = context.l1_resource_bounds().unwrap();
             assert_matches!(
-                    <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+                    <AccountTransaction as ExecutableTransaction<_>>::execute(
             &invalid_tx, state, block_context, true, true).unwrap_err(),
                     TransactionExecutionError::TransactionPreValidationError(
                         TransactionPreValidationError::TransactionFeeError(
@@ -918,15 +918,14 @@ fn test_insufficient_resource_bounds(
     let invalid_v1_tx = account_invoke_tx(
         invoke_tx_args! { max_fee: invalid_max_fee, version: TransactionVersion::ONE,  ..valid_invoke_tx_args.clone() },
     );
-    let execution_error =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &invalid_v1_tx,
-            state,
-            block_context,
-            true,
-            true,
-        )
-        .unwrap_err();
+    let execution_error = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &invalid_v1_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap_err();
 
     // Test error.
     assert_matches!(
@@ -948,15 +947,14 @@ fn test_insufficient_resource_bounds(
         resource_bounds: l1_resource_bounds(insufficient_max_l1_gas_amount, actual_strk_l1_gas_price.into()),
         ..valid_invoke_tx_args.clone()
     });
-    let execution_error =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &invalid_v3_tx,
-            state,
-            block_context,
-            true,
-            true,
-        )
-        .unwrap_err();
+    let execution_error = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &invalid_v3_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap_err();
     // TODO(Ori, 1/2/2024): Write an indicative expect message explaining why the conversion works.
     let minimal_l1_gas_as_u64 =
         u64::try_from(minimal_l1_gas).expect("Failed to convert u128 to u64.");
@@ -978,15 +976,14 @@ fn test_insufficient_resource_bounds(
         resource_bounds: l1_resource_bounds(minimal_l1_gas.try_into().expect("Failed to convert u128 to u64."), insufficient_max_l1_gas_price),
         ..valid_invoke_tx_args
     });
-    let execution_error =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &invalid_v3_tx,
-            state,
-            block_context,
-            true,
-            true,
-        )
-        .unwrap_err();
+    let execution_error = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &invalid_v3_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap_err();
     assert_matches!(
         execution_error,
         TransactionExecutionError::TransactionPreValidationError(
@@ -1028,15 +1025,14 @@ fn test_actual_fee_gt_resource_bounds(
         invoke_tx_args! { resource_bounds: minimal_resource_bounds, ..invoke_tx_args },
     );
 
-    let execution_result =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &invalid_tx,
-            state,
-            block_context,
-            true,
-            true,
-        )
-        .unwrap();
+    let execution_result = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &invalid_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap();
     let execution_error = execution_result.revert_error.unwrap();
     // Test error.
     assert!(execution_error.starts_with("Insufficient max L1 gas:"));
@@ -1064,7 +1060,7 @@ fn test_invalid_nonce(
         calldata: create_trivial_calldata(test_contract.get_instance_address(0)),
         resource_bounds: max_resource_bounds,
     };
-    let mut transactional_state: TransactionalState<'_, HashSet<usize>, _, VisitedPcsSet> =
+    let mut transactional_state: TransactionalState<'_, _> =
         TransactionalState::create_transactional(state);
 
     // Strict, negative flow: account nonce = 0, incoming tx nonce = 1.
@@ -1217,11 +1213,13 @@ fn test_declare_tx(
     );
     let fee_type = &account_tx.fee_type();
     let tx_context = &block_context.to_tx_context(&account_tx);
-    let actual_execution_info = <AccountTransaction as ExecutableTransaction<
-        _,
-        _,
-        VisitedPcsSet,
-    >>::execute(&account_tx, state, block_context, true, true)
+    let actual_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
     .unwrap();
 
     // Build expected validate call info.
@@ -1319,7 +1317,7 @@ fn test_declare_tx(
         },
         class_info.clone(),
     );
-    let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx2,
         state,
         block_context,
@@ -1374,11 +1372,13 @@ fn test_deploy_account_tx(
     let account_tx = AccountTransaction::DeployAccount(deploy_account);
     let fee_type = &account_tx.fee_type();
     let tx_context = &block_context.to_tx_context(&account_tx);
-    let actual_execution_info = <AccountTransaction as ExecutableTransaction<
-        _,
-        _,
-        VisitedPcsSet,
-    >>::execute(&account_tx, state, block_context, true, true)
+    let actual_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
     .unwrap();
 
     // Build expected validate call info.
@@ -1496,7 +1496,7 @@ fn test_deploy_account_tx(
         &mut nonce_manager,
     );
     let account_tx = AccountTransaction::DeployAccount(deploy_account);
-    let error = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let error = <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         state,
         block_context,
@@ -1544,7 +1544,7 @@ fn test_fail_deploy_account_undeclared_class_hash(
         .unwrap();
 
     let account_tx = AccountTransaction::DeployAccount(deploy_account);
-    let error = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let error = <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         state,
         block_context,
@@ -1611,7 +1611,7 @@ fn test_validate_accounts_tx(
         additional_data: None,
         ..default_args
     });
-    let error = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let error = <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         state,
         block_context,
@@ -1634,7 +1634,7 @@ fn test_validate_accounts_tx(
         contract_address_salt: salt_manager.next_salt(),
         ..default_args
     });
-    let error = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let error = <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         state,
         block_context,
@@ -1656,7 +1656,7 @@ fn test_validate_accounts_tx(
             additional_data: None,
             ..default_args
         });
-        let error = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        let error = <AccountTransaction as ExecutableTransaction<_>>::execute(
             &account_tx,
             state,
             block_context,
@@ -1677,7 +1677,7 @@ fn test_validate_accounts_tx(
             contract_address_salt: salt_manager.next_salt(),
             ..default_args
         });
-        let error = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        let error = <AccountTransaction as ExecutableTransaction<_>>::execute(
             &account_tx,
             state,
             block_context,
@@ -1707,7 +1707,7 @@ fn test_validate_accounts_tx(
             ..default_args
         },
     );
-    let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         state,
         block_context,
@@ -1729,7 +1729,7 @@ fn test_validate_accounts_tx(
                 ..default_args
             },
         );
-        let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
             &account_tx,
             state,
             block_context,
@@ -1754,7 +1754,7 @@ fn test_validate_accounts_tx(
                 ..default_args
             },
         );
-        let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
             &account_tx,
             state,
             block_context,
@@ -1775,7 +1775,7 @@ fn test_validate_accounts_tx(
                 ..default_args
             },
         );
-        let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
             &account_tx,
             state,
             block_context,
@@ -1802,7 +1802,7 @@ fn test_validate_accounts_tx(
                 ..default_args
             },
         );
-        let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
             &account_tx,
             state,
             block_context,
@@ -1835,11 +1835,13 @@ fn test_valid_flag(
         resource_bounds: max_resource_bounds,
     });
 
-    let actual_execution_info = <AccountTransaction as ExecutableTransaction<
-        _,
-        _,
-        VisitedPcsSet,
-    >>::execute(&account_tx, state, block_context, true, false)
+    let actual_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        false,
+    )
     .unwrap();
 
     assert!(actual_execution_info.validate_call_info.is_none());
@@ -1939,15 +1941,14 @@ fn test_only_query_flag(
     });
     let account_tx = AccountTransaction::Invoke(invoke_tx);
 
-    let tx_execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            state,
-            block_context,
-            true,
-            true,
-        )
-        .unwrap();
+    let tx_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap();
     assert!(!tx_execution_info.is_reverted())
 }
 
@@ -1966,11 +1967,13 @@ fn test_l1_handler(#[values(false, true)] use_kzg_da: bool) {
     let value = calldata.0[2];
     let payload_size = tx.payload_size();
 
-    let actual_execution_info = <L1HandlerTransaction as ExecutableTransaction<
-        _,
-        _,
-        VisitedPcsSet,
-    >>::execute(&tx, state, block_context, true, true)
+    let actual_execution_info = <L1HandlerTransaction as ExecutableTransaction<_>>::execute(
+        &tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
     .unwrap();
 
     // Build the expected call info.
@@ -2092,7 +2095,7 @@ fn test_l1_handler(#[values(false, true)] use_kzg_da: bool) {
     // always uptade the storage instad.
     state.set_storage_at(contract_address, StorageKey::try_from(key).unwrap(), Felt::ZERO).unwrap();
     let tx_no_fee = L1HandlerTransaction::create_for_testing(Fee(0), contract_address);
-    let error = <L1HandlerTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let error = <L1HandlerTransaction as ExecutableTransaction<_>>::execute(
         &tx_no_fee,
         state,
         block_context,
@@ -2137,15 +2140,14 @@ fn test_execute_tx_with_invalid_transaction_version(
         calldata,
     });
 
-    let execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            state,
-            block_context,
-            true,
-            true,
-        )
-        .unwrap();
+    let execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap();
     assert!(
         execution_info
             .revert_error
@@ -2240,15 +2242,14 @@ fn test_emit_event_exceeds_limit(
         resource_bounds: max_resource_bounds,
         nonce: nonce!(0_u8),
     });
-    let execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            state,
-            block_context,
-            true,
-            true,
-        )
-        .unwrap();
+    let execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap();
     match &expected_error {
         Some(expected_error) => {
             let error_string = execution_info.revert_error.unwrap();

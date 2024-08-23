@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::marker::PhantomData;
 
 use derive_more::IntoIterator;
 use indexmap::IndexMap;
@@ -8,7 +7,7 @@ use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::state::StorageKey;
 use starknet_types_core::felt::Felt;
 
-use super::visited_pcs::{VisitedPcsSet, VisitedPcsTrait};
+use super::visited_pcs::{VisitedPcsRaw, VisitedPcsSet, VisitedPcsTrait};
 use crate::abi::abi_utils::get_fee_token_var_address;
 use crate::context::TransactionContext;
 use crate::execution::contract_class::ContractClass;
@@ -28,25 +27,24 @@ pub type ContractClassMapping = HashMap<ClassHash, ContractClass>;
 /// Writer functionality is builtin, whereas Reader functionality is injected through
 /// initialization.
 #[derive(Debug)]
-pub struct CachedState<T, S: StateReader, V: VisitedPcsTrait<T>> {
+pub struct CachedState<S: StateReader> {
     pub state: S,
     // Invariant: read/write access is managed by CachedState.
     // Using interior mutability to update caches during `State`'s immutable getters.
     pub(crate) cache: RefCell<StateCache>,
     pub(crate) class_hash_to_class: RefCell<ContractClassMapping>,
     /// A map from class hash to the set of PC values that were visited in the class.
-    pub visited_pcs: V,
-    _marker: PhantomData<T>,
+    pub visited_pcs: VisitedPcsSet,
 }
 
-impl<T, S: StateReader, V: VisitedPcsTrait<T>> CachedState<T, S, V> {
+impl<S: StateReader> CachedState<S> {
     pub fn new(state: S) -> Self {
+        println!("New CachedState");
         Self {
             state,
             cache: RefCell::new(StateCache::default()),
             class_hash_to_class: RefCell::new(HashMap::default()),
-            visited_pcs: V::default(),
-            _marker: PhantomData,
+            visited_pcs: VisitedPcsSet::default(),
         }
     }
 
@@ -77,8 +75,8 @@ impl<T, S: StateReader, V: VisitedPcsTrait<T>> CachedState<T, S, V> {
         self.class_hash_to_class.get_mut().extend(local_contract_cache_updates);
     }
 
-    pub fn update_visited_pcs_cache(&mut self, visited_pcs: &VisitedPcsSet) {
-        for (class_hash, class_visited_pcs) in visited_pcs {
+    pub fn update_visited_pcs_cache<V: VisitedPcsTrait>(&mut self, visited_pcs: &V) {
+        for (class_hash, class_visited_pcs) in visited_pcs.iter() {
             let vec_visited_pcs = Vec::from_iter(class_visited_pcs.clone());
             self.add_visited_pcs(*class_hash, &vec_visited_pcs);
         }
@@ -112,12 +110,12 @@ impl<T, S: StateReader, V: VisitedPcsTrait<T>> CachedState<T, S, V> {
     }
 }
 
-impl<T, S: StateReader, V: VisitedPcsTrait<T>> UpdatableState for CachedState<T, S, V> {
-    fn apply_writes(
+impl<S: StateReader> UpdatableState for CachedState<S> {
+    fn apply_writes<V: VisitedPcsTrait>(
         &mut self,
         writes: &StateMaps,
         class_hash_to_class: &ContractClassMapping,
-        visited_pcs: &VisitedPcsSet,
+        visited_pcs: &V,
     ) {
         // TODO(Noa,15/5/24): Reconsider the clone.
         self.update_cache(writes, class_hash_to_class.clone());
@@ -126,13 +124,13 @@ impl<T, S: StateReader, V: VisitedPcsTrait<T>> UpdatableState for CachedState<T,
 }
 
 #[cfg(any(feature = "testing", test))]
-impl<T, S: StateReader, V: VisitedPcsTrait<T>> From<S> for CachedState<T, S, V> {
+impl<S: StateReader> From<S> for CachedState<S> {
     fn from(state_reader: S) -> Self {
         CachedState::new(state_reader)
     }
 }
 
-impl<T, S: StateReader, V: VisitedPcsTrait<T>> StateReader for CachedState<T, S, V> {
+impl<S: StateReader> StateReader for CachedState<S> {
     fn get_storage_at(
         &self,
         contract_address: ContractAddress,
@@ -227,7 +225,7 @@ impl<T, S: StateReader, V: VisitedPcsTrait<T>> StateReader for CachedState<T, S,
     }
 }
 
-impl<T, S: StateReader, V: VisitedPcsTrait<T>> State for CachedState<T, S, V> {
+impl<S: StateReader> State for CachedState<S> {
     fn set_storage_at(
         &mut self,
         contract_address: ContractAddress,
@@ -286,20 +284,288 @@ impl<T, S: StateReader, V: VisitedPcsTrait<T>> State for CachedState<T, S, V> {
 }
 
 #[cfg(any(feature = "testing", test))]
-impl Default
-    for CachedState<
-        HashSet<usize>,
-        crate::test_utils::dict_state_reader::DictStateReader,
-        VisitedPcsSet,
-    >
-{
+impl Default for CachedState<crate::test_utils::dict_state_reader::DictStateReader> {
     fn default() -> Self {
         Self {
             state: Default::default(),
             cache: Default::default(),
             class_hash_to_class: Default::default(),
             visited_pcs: Default::default(),
-            _marker: PhantomData,
+        }
+    }
+}
+
+/// Caches read and write requests.
+///
+/// Writer functionality is builtin, whereas Reader functionality is injected
+/// through initialization.
+#[derive(Debug)]
+pub struct CachedStateRaw<S: StateReader> {
+    pub state: S,
+    // Invariant: read/write access is managed by CachedState.
+    // Using interior mutability to update caches during `State`'s immutable getters.
+    pub(crate) cache: RefCell<StateCache>,
+    pub(crate) class_hash_to_class: RefCell<ContractClassMapping>,
+    /// A map from class hash to the set of PC values that were visited in the
+    /// class.
+    pub visited_pcs: VisitedPcsRaw,
+}
+
+impl<S: StateReader> CachedStateRaw<S> {
+    pub fn new(state: S) -> Self {
+        Self {
+            state,
+            cache: RefCell::new(StateCache::default()),
+            class_hash_to_class: RefCell::new(HashMap::default()),
+            visited_pcs: VisitedPcsRaw::default(),
+        }
+    }
+
+    /// Returns the state diff resulting from the performed writes, with respect
+    /// to the parent state.
+    pub fn to_state_diff(&mut self) -> StateResult<StateMaps> {
+        self.update_initial_values_of_write_only_access()?;
+        Ok(self.cache.borrow().to_state_diff())
+    }
+
+    // TODO(Yoni, 1/8/2024): remove this function.
+    /// Returns the state changes made on this state.
+    pub fn get_actual_state_changes(&mut self) -> StateResult<StateChanges> {
+        Ok(self.to_state_diff()?.into())
+    }
+
+    pub fn update_cache(
+        &mut self,
+        write_updates: &StateMaps,
+        local_contract_cache_updates: ContractClassMapping,
+    ) {
+        // Check consistency between declared_contracts and class_hash_to_class.
+        for (&key, &value) in &write_updates.declared_contracts {
+            assert_eq!(value, local_contract_cache_updates.contains_key(&key));
+        }
+        let mut cache = self.cache.borrow_mut();
+        cache.writes.extend(write_updates);
+        self.class_hash_to_class.get_mut().extend(local_contract_cache_updates);
+    }
+
+    pub fn update_visited_pcs_cache<V: VisitedPcsTrait>(&mut self, visited_pcs: &V) {
+        for (class_hash, class_visited_pcs) in visited_pcs.iter() {
+            let vec_visited_pcs = Vec::from_iter(class_visited_pcs.clone());
+            self.add_visited_pcs(*class_hash, &vec_visited_pcs);
+        }
+    }
+
+    /// Updates cache with initial cell values for write-only access.
+    /// If written values match the original, the cell is unchanged and not
+    /// counted as a storage-change for fee calculation.
+    /// Note: in valid flows, all other read mappings must be filled at this
+    /// point:
+    ///   * Nonce: read previous before incrementing.
+    ///   * Class hash: Deploy: verify the address is not occupied; Replace class: verify the
+    ///     contract is deployed before running any code.
+    ///   * Compiled class hash: verify the class is not declared through
+    ///     `get_compiled_contract_class`.
+    ///
+    /// TODO(Noa, 30/07/23): Consider adding DB getters in bulk (via a DB read
+    /// transaction).
+    fn update_initial_values_of_write_only_access(&mut self) -> StateResult<()> {
+        let cache = &mut *self.cache.borrow_mut();
+
+        // Eliminate storage writes that are identical to the initial value (no change).
+        for contract_storage_key in cache.writes.storage.keys() {
+            if !cache.initial_reads.storage.contains_key(contract_storage_key) {
+                // First access to this cell was write; cache initial value.
+                cache.initial_reads.storage.insert(
+                    *contract_storage_key,
+                    self.state.get_storage_at(contract_storage_key.0, contract_storage_key.1)?,
+                );
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<S: StateReader> UpdatableState for CachedStateRaw<S> {
+    fn apply_writes<V: VisitedPcsTrait>(
+        &mut self,
+        writes: &StateMaps,
+        class_hash_to_class: &ContractClassMapping,
+        visited_pcs: &V,
+    ) {
+        // TODO(Noa,15/5/24): Reconsider the clone.
+        self.update_cache(writes, class_hash_to_class.clone());
+        self.update_visited_pcs_cache(visited_pcs);
+    }
+}
+
+#[cfg(any(feature = "testing", test))]
+impl<S: StateReader> From<S> for CachedStateRaw<S> {
+    fn from(state_reader: S) -> Self {
+        CachedStateRaw::new(state_reader)
+    }
+}
+
+impl<S: StateReader> StateReader for CachedStateRaw<S> {
+    fn get_storage_at(
+        &self,
+        contract_address: ContractAddress,
+        key: StorageKey,
+    ) -> StateResult<Felt> {
+        let mut cache = self.cache.borrow_mut();
+
+        if cache.get_storage_at(contract_address, key).is_none() {
+            let storage_value = self.state.get_storage_at(contract_address, key)?;
+            cache.set_storage_initial_value(contract_address, key, storage_value);
+        }
+
+        let value = cache.get_storage_at(contract_address, key).unwrap_or_else(|| {
+            panic!("Cannot retrieve '{contract_address:?}' and '{key:?}' from the cache.")
+        });
+        Ok(*value)
+    }
+
+    fn get_nonce_at(&self, contract_address: ContractAddress) -> StateResult<Nonce> {
+        let mut cache = self.cache.borrow_mut();
+
+        if cache.get_nonce_at(contract_address).is_none() {
+            let nonce = self.state.get_nonce_at(contract_address)?;
+            cache.set_nonce_initial_value(contract_address, nonce);
+        }
+
+        let nonce = cache
+            .get_nonce_at(contract_address)
+            .unwrap_or_else(|| panic!("Cannot retrieve '{contract_address:?}' from the cache."));
+
+        Ok(*nonce)
+    }
+
+    fn get_class_hash_at(&self, contract_address: ContractAddress) -> StateResult<ClassHash> {
+        let mut cache = self.cache.borrow_mut();
+
+        if cache.get_class_hash_at(contract_address).is_none() {
+            let class_hash = self.state.get_class_hash_at(contract_address)?;
+            cache.set_class_hash_initial_value(contract_address, class_hash);
+        }
+
+        let class_hash = cache
+            .get_class_hash_at(contract_address)
+            .unwrap_or_else(|| panic!("Cannot retrieve '{contract_address:?}' from the cache."));
+        Ok(*class_hash)
+    }
+
+    fn get_compiled_contract_class(&self, class_hash: ClassHash) -> StateResult<ContractClass> {
+        let mut cache = self.cache.borrow_mut();
+        let class_hash_to_class = &mut *self.class_hash_to_class.borrow_mut();
+
+        if let std::collections::hash_map::Entry::Vacant(vacant_entry) =
+            class_hash_to_class.entry(class_hash)
+        {
+            match self.state.get_compiled_contract_class(class_hash) {
+                Err(StateError::UndeclaredClassHash(class_hash)) => {
+                    cache.set_declared_contract_initial_values(class_hash, false);
+                    cache.set_compiled_class_hash_initial_value(
+                        class_hash,
+                        CompiledClassHash(Felt::ZERO),
+                    );
+                    Err(StateError::UndeclaredClassHash(class_hash))?;
+                }
+                Err(error) => Err(error)?,
+                Ok(contract_class) => {
+                    cache.set_declared_contract_initial_values(class_hash, true);
+                    vacant_entry.insert(contract_class);
+                }
+            }
+        }
+
+        let contract_class = class_hash_to_class
+            .get(&class_hash)
+            .cloned()
+            .expect("The class hash must appear in the cache.");
+
+        Ok(contract_class)
+    }
+
+    fn get_compiled_class_hash(&self, class_hash: ClassHash) -> StateResult<CompiledClassHash> {
+        let mut cache = self.cache.borrow_mut();
+
+        if cache.get_compiled_class_hash(class_hash).is_none() {
+            let compiled_class_hash = self.state.get_compiled_class_hash(class_hash)?;
+            cache.set_compiled_class_hash_initial_value(class_hash, compiled_class_hash);
+        }
+
+        let compiled_class_hash = cache
+            .get_compiled_class_hash(class_hash)
+            .unwrap_or_else(|| panic!("Cannot retrieve '{class_hash:?}' from the cache."));
+        Ok(*compiled_class_hash)
+    }
+}
+
+impl<S: StateReader> State for CachedStateRaw<S> {
+    fn set_storage_at(
+        &mut self,
+        contract_address: ContractAddress,
+        key: StorageKey,
+        value: Felt,
+    ) -> StateResult<()> {
+        self.cache.get_mut().set_storage_value(contract_address, key, value);
+
+        Ok(())
+    }
+
+    fn increment_nonce(&mut self, contract_address: ContractAddress) -> StateResult<()> {
+        let current_nonce = self.get_nonce_at(contract_address)?;
+        let next_nonce = Nonce(current_nonce.0 + Felt::ONE);
+        self.cache.get_mut().set_nonce_value(contract_address, next_nonce);
+
+        Ok(())
+    }
+
+    fn set_class_hash_at(
+        &mut self,
+        contract_address: ContractAddress,
+        class_hash: ClassHash,
+    ) -> StateResult<()> {
+        if contract_address == ContractAddress::default() {
+            return Err(StateError::OutOfRangeContractAddress);
+        }
+
+        self.cache.get_mut().set_class_hash_write(contract_address, class_hash);
+        Ok(())
+    }
+
+    fn set_contract_class(
+        &mut self,
+        class_hash: ClassHash,
+        contract_class: ContractClass,
+    ) -> StateResult<()> {
+        self.class_hash_to_class.get_mut().insert(class_hash, contract_class);
+        let mut cache = self.cache.borrow_mut();
+        cache.declare_contract(class_hash);
+        Ok(())
+    }
+
+    fn set_compiled_class_hash(
+        &mut self,
+        class_hash: ClassHash,
+        compiled_class_hash: CompiledClassHash,
+    ) -> StateResult<()> {
+        self.cache.get_mut().set_compiled_class_hash_write(class_hash, compiled_class_hash);
+        Ok(())
+    }
+
+    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &Vec<usize>) {
+        self.visited_pcs.insert(&class_hash, pcs);
+    }
+}
+
+#[cfg(any(feature = "testing", test))]
+impl Default for CachedStateRaw<crate::test_utils::dict_state_reader::DictStateReader> {
+    fn default() -> Self {
+        Self {
+            state: Default::default(),
+            cache: Default::default(),
+            class_hash_to_class: Default::default(),
+            visited_pcs: Default::default(),
         }
     }
 }
@@ -516,14 +782,14 @@ impl<'a, S: StateReader + ?Sized> StateReader for MutRefState<'a, S> {
     }
 }
 
-pub type TransactionalState<'a, T, U, V> = CachedState<T, MutRefState<'a, U>, V>;
+pub type TransactionalState<'a, U> = CachedState<MutRefState<'a, U>>;
 
-impl<'a, T, S: StateReader, V: VisitedPcsTrait<T>> TransactionalState<'a, T, S, V> {
+impl<'a, S: StateReader> TransactionalState<'a, S> {
     /// Creates a transactional instance from the given updatable state.
     /// It allows performing buffered modifying actions on the given state, which
     /// will either all happen (will be updated in the state and committed)
     /// or none of them (will be discarded).
-    pub fn create_transactional(state: &mut S) -> TransactionalState<'_, T, S, V> {
+    pub fn create_transactional(state: &mut S) -> TransactionalState<'_, S> {
         CachedState::new(MutRefState::new(state))
     }
 
@@ -532,7 +798,36 @@ impl<'a, T, S: StateReader, V: VisitedPcsTrait<T>> TransactionalState<'a, T, S, 
 }
 
 /// Adds the ability to perform a transactional execution.
-impl<'a, T, U: UpdatableState, V: VisitedPcsTrait<T>> TransactionalState<'a, T, U, V> {
+impl<'a, U: UpdatableState> TransactionalState<'a, U> {
+    /// Commits changes in the child (wrapping) state to its parent.
+    pub fn commit(self) {
+        let state = self.state.0;
+        let child_cache = self.cache.into_inner();
+        state.apply_writes(
+            &child_cache.writes,
+            &self.class_hash_to_class.into_inner(),
+            &self.visited_pcs,
+        )
+    }
+}
+
+pub type TransactionalStateRaw<'a, U> = CachedStateRaw<MutRefState<'a, U>>;
+
+impl<'a, S: StateReader> TransactionalStateRaw<'a, S> {
+    /// Creates a transactional instance from the given updatable state.
+    /// It allows performing buffered modifying actions on the given state, which
+    /// will either all happen (will be updated in the state and committed)
+    /// or none of them (will be discarded).
+    pub fn create_transactional(state: &mut S) -> TransactionalStateRaw<'_, S> {
+        CachedStateRaw::new(MutRefState::new(state))
+    }
+
+    /// Drops `self`.
+    pub fn abort(self) {}
+}
+
+/// Adds the ability to perform a transactional execution.
+impl<'a, U: UpdatableState> TransactionalStateRaw<'a, U> {
     /// Commits changes in the child (wrapping) state to its parent.
     pub fn commit(self) {
         let state = self.state.0;

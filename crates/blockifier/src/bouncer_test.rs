@@ -184,11 +184,10 @@ fn test_bouncer_try_update(
 ) {
     use cairo_vm::vm::runners::cairo_runner::ExecutionResources;
 
-    use crate::state::visited_pcs::VisitedPcsSet;
     use crate::transaction::objects::TransactionResources;
 
     let state = &mut test_state(&BlockContext::create_for_account_testing().chain_info, 0, &[]);
-    let mut transactional_state: TransactionalState<'_, HashSet<usize>, _, VisitedPcsSet> =
+    let mut transactional_state: TransactionalState<'_, _> =
         TransactionalState::create_transactional(state);
 
     // Setup the bouncer.

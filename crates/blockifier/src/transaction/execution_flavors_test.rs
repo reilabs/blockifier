@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use assert_matches::assert_matches;
 use pretty_assertions::assert_eq;
 use rstest::rstest;
@@ -15,7 +13,6 @@ use crate::execution::syscalls::SyscallSelector;
 use crate::fee::fee_utils::get_fee_by_gas_vector;
 use crate::state::cached_state::CachedState;
 use crate::state::state_api::StateReader;
-use crate::state::visited_pcs::{VisitedPcsSet, VisitedPcsTrait};
 use crate::test_utils::contracts::FeatureContract;
 use crate::test_utils::dict_state_reader::DictStateReader;
 use crate::test_utils::initial_test_state::test_state;
@@ -37,7 +34,7 @@ use crate::{invoke_tx_args, nonce};
 const VALIDATE_GAS_OVERHEAD: u64 = 21;
 
 struct FlavorTestInitialState {
-    pub state: CachedState<HashSet<usize>, DictStateReader, VisitedPcsSet>,
+    pub state: CachedState<DictStateReader>,
     pub account_address: ContractAddress,
     pub faulty_account_address: ContractAddress,
     pub test_contract_address: ContractAddress,
@@ -67,9 +64,9 @@ fn create_flavors_test_state(
 
 /// Checks that balance of the account decreased if and only if `charge_fee` is true.
 /// Returns the new balance.
-fn check_balance<T, S: StateReader, V: VisitedPcsTrait<T>>(
+fn check_balance<S: StateReader>(
     current_balance: Felt,
-    state: &mut CachedState<T, S, V>,
+    state: &mut CachedState<S>,
     account_address: ContractAddress,
     chain_info: &ChainInfo,
     fee_type: &FeeType,
@@ -193,7 +190,7 @@ fn test_simulate_validate_charge_fee_pre_validate(
     let account_tx = account_invoke_tx(
         invoke_tx_args! {nonce: invalid_nonce, ..pre_validation_base_args.clone()},
     );
-    let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         &mut state,
         &block_context,
@@ -227,7 +224,7 @@ fn test_simulate_validate_charge_fee_pre_validate(
         nonce: nonce_manager.next(account_address),
         ..pre_validation_base_args.clone()
     });
-    let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         &mut state,
         &block_context,
@@ -277,7 +274,7 @@ fn test_simulate_validate_charge_fee_pre_validate(
         nonce: nonce_manager.next(account_address),
         ..pre_validation_base_args.clone()
     });
-    let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         &mut state,
         &block_context,
@@ -323,7 +320,7 @@ fn test_simulate_validate_charge_fee_pre_validate(
             nonce: nonce_manager.next(account_address),
             ..pre_validation_base_args
         });
-        let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+        let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
             &account_tx,
             &mut state,
             &block_context,
@@ -399,7 +396,7 @@ fn test_simulate_validate_charge_fee_fail_validate(
         nonce: nonce_manager.next(faulty_account_address),
         only_query,
     });
-    let result = <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
+    let result = <AccountTransaction as ExecutableTransaction<_>>::execute(
         &account_tx,
         &mut falliable_state,
         &block_context,
@@ -478,15 +475,14 @@ fn test_simulate_validate_charge_fee_mid_execution(
         nonce: nonce_manager.next(account_address),
         ..execution_base_args.clone()
     });
-    let tx_execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            &mut state,
-            &block_context,
-            charge_fee,
-            validate,
-        )
-        .unwrap();
+    let tx_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        &mut state,
+        &block_context,
+        charge_fee,
+        validate,
+    )
+    .unwrap();
     assert!(tx_execution_info.is_reverted());
     check_gas_and_fee(
         &block_context,
@@ -527,15 +523,14 @@ fn test_simulate_validate_charge_fee_mid_execution(
         nonce: nonce_manager.next(account_address),
         ..execution_base_args.clone()
     });
-    let tx_execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            &mut state,
-            &block_context,
-            charge_fee,
-            validate,
-        )
-        .unwrap();
+    let tx_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        &mut state,
+        &block_context,
+        charge_fee,
+        validate,
+    )
+    .unwrap();
     assert_eq!(tx_execution_info.is_reverted(), charge_fee);
     if charge_fee {
         assert!(tx_execution_info.revert_error.clone().unwrap().contains("no remaining steps"));
@@ -586,15 +581,14 @@ fn test_simulate_validate_charge_fee_mid_execution(
         nonce: nonce_manager.next(account_address),
         ..execution_base_args
     });
-    let tx_execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            &mut state,
-            &low_step_block_context,
-            charge_fee,
-            validate,
-        )
-        .unwrap();
+    let tx_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        &mut state,
+        &low_step_block_context,
+        charge_fee,
+        validate,
+    )
+    .unwrap();
     assert!(tx_execution_info.revert_error.clone().unwrap().contains("no remaining steps"));
     // Complete resources used are reported as transaction_receipt.resources; but only the charged
     // final fee is shown in actual_fee. As a sanity check, verify that the fee derived directly
@@ -678,15 +672,14 @@ fn test_simulate_validate_charge_fee_post_execution(
         version,
         only_query,
     });
-    let tx_execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            &mut state,
-            &block_context,
-            charge_fee,
-            validate,
-        )
-        .unwrap();
+    let tx_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        &mut state,
+        &block_context,
+        charge_fee,
+        validate,
+    )
+    .unwrap();
     assert_eq!(tx_execution_info.is_reverted(), charge_fee);
     if charge_fee {
         assert!(tx_execution_info.revert_error.clone().unwrap().starts_with(if is_deprecated {
@@ -750,15 +743,14 @@ fn test_simulate_validate_charge_fee_post_execution(
         version,
         only_query,
     });
-    let tx_execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            &mut state,
-            &block_context,
-            charge_fee,
-            validate,
-        )
-        .unwrap();
+    let tx_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        &mut state,
+        &block_context,
+        charge_fee,
+        validate,
+    )
+    .unwrap();
     assert_eq!(tx_execution_info.is_reverted(), charge_fee);
     if charge_fee {
         assert!(

@@ -3,7 +3,7 @@ use starknet_api::state::StorageKey;
 use starknet_types_core::felt::Felt;
 
 use super::cached_state::{ContractClassMapping, StateMaps};
-use super::visited_pcs::VisitedPcsSet;
+use super::visited_pcs::VisitedPcsTrait;
 use crate::abi::abi_utils::get_fee_token_var_address;
 use crate::abi::sierra_types::next_storage_key;
 use crate::execution::contract_class::ContractClass;
@@ -111,10 +111,10 @@ pub trait State: StateReader {
 
 /// A class defining the API for updating a state with transactions writes.
 pub trait UpdatableState: StateReader {
-    fn apply_writes(
+    fn apply_writes<V: VisitedPcsTrait>(
         &mut self,
         writes: &StateMaps,
         class_hash_to_class: &ContractClassMapping,
-        visited_pcs: &VisitedPcsSet,
+        visited_pcs: &V,
     );
 }

@@ -10,7 +10,7 @@ use crate::execution::contract_class::ContractClass;
 use crate::state::cached_state::{ContractClassMapping, StateMaps};
 use crate::state::errors::StateError;
 use crate::state::state_api::{StateReader, StateResult, UpdatableState};
-use crate::state::visited_pcs::VisitedPcsSet;
+use crate::state::visited_pcs::{VisitedPcsSet, VisitedPcsTrait};
 
 #[cfg(test)]
 #[path = "versioned_state_test.rs"]
@@ -273,11 +273,11 @@ impl<S: StateReader> VersionedStateProxy<S> {
 
 // TODO(Noa, 15/5/24): Consider using visited_pcs.
 impl<S: StateReader> UpdatableState for VersionedStateProxy<S> {
-    fn apply_writes(
+    fn apply_writes<V: VisitedPcsTrait>(
         &mut self,
         writes: &StateMaps,
         class_hash_to_class: &ContractClassMapping,
-        _visited_pcs: &VisitedPcsSet,
+        _visited_pcs: &V,
     ) {
         self.state().apply_writes(self.tx_index, writes, class_hash_to_class)
     }

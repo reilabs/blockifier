@@ -19,7 +19,7 @@ use crate::context::BlockContext;
 use crate::state::cached_state::{CachedState, CommitmentStateDiff, TransactionalState};
 use crate::state::errors::StateError;
 use crate::state::state_api::StateReader;
-use crate::state::visited_pcs::{VisitedPcsSet, VisitedPcsTrait};
+use crate::state::visited_pcs::VisitedPcsTrait;
 use crate::transaction::errors::TransactionExecutionError;
 use crate::transaction::objects::TransactionExecutionInfo;
 use crate::transaction::transaction_execution::Transaction;
@@ -45,7 +45,7 @@ pub type TransactionExecutorResult<T> = Result<T, TransactionExecutorError>;
 pub type VisitedSegmentsMapping = Vec<(ClassHash, Vec<usize>)>;
 
 // TODO(Gilad): make this hold TransactionContext instead of BlockContext.
-pub struct TransactionExecutor<T, S: StateReader, V: VisitedPcsTrait<T>> {
+pub struct TransactionExecutor<S: StateReader> {
     pub block_context: BlockContext,
     pub bouncer: Bouncer,
     // Note: this config must not affect the execution result (e.g. state diff and traces).
@@ -56,12 +56,12 @@ pub struct TransactionExecutor<T, S: StateReader, V: VisitedPcsTrait<T>> {
     // block state to the worker executor - operating at the chunk level - and gets it back after
     // committing the chunk. The block state is wrapped with an Option<_> to allow setting it to
     // `None` while it is moved to the worker executor.
-    pub block_state: Option<CachedState<T, S, V>>,
+    pub block_state: Option<CachedState<S>>,
 }
 
-impl<T, S: StateReader, V: VisitedPcsTrait<T>> TransactionExecutor<T, S, V> {
+impl<S: StateReader> TransactionExecutor<S> {
     pub fn new(
-        block_state: CachedState<T, S, V>,
+        block_state: CachedState<S>,
         block_context: BlockContext,
         config: TransactionExecutorConfig,
     ) -> Self {
@@ -87,7 +87,7 @@ impl<T, S: StateReader, V: VisitedPcsTrait<T>> TransactionExecutor<T, S, V> {
         &mut self,
         tx: &Transaction,
     ) -> TransactionExecutorResult<TransactionExecutionInfo> {
-        let mut transactional_state: TransactionalState<'_, HashSet<usize>, _, VisitedPcsSet> =
+        let mut transactional_state: TransactionalState<'_, _> =
             TransactionalState::create_transactional(
                 self.block_state.as_mut().expect(BLOCK_STATE_ACCESS_ERR),
             );
@@ -160,7 +160,8 @@ impl<T, S: StateReader, V: VisitedPcsTrait<T>> TransactionExecutor<T, S, V> {
                     .as_ref()
                     .expect(BLOCK_STATE_ACCESS_ERR)
                     .get_compiled_contract_class(*class_hash)?;
-                Ok((*class_hash, contract_class.get_visited_segments(class_visited_pcs)?))
+                let visited_pcs_set = HashSet::from_iter(class_visited_pcs);
+                Ok((*class_hash, contract_class.get_visited_segments(&visited_pcs_set)?))
             })
             .collect::<TransactionExecutorResult<_>>()?;
 
@@ -173,9 +174,7 @@ impl<T, S: StateReader, V: VisitedPcsTrait<T>> TransactionExecutor<T, S, V> {
     }
 }
 
-impl<T: Send + Sync, S: StateReader + Send + Sync, V: VisitedPcsTrait<T> + Send + Sync>
-    TransactionExecutor<T, S, V>
-{
+impl<S: StateReader + Send + Sync> TransactionExecutor<S> {
     /// Executes the given transactions on the state maintained by the executor.
     /// Stops if and when there is no more room in the block, and returns the executed transactions'
     /// results.
@@ -280,8 +279,8 @@ impl<T: Send + Sync, S: StateReader + Send + Sync, V: VisitedPcsTrait<T> + Send 
                 .expect("Output must be ready.");
             tx_execution_results
                 .push(locked_execution_output.result.map_err(TransactionExecutorError::from));
-            for (class_hash, class_visited_pcs) in locked_execution_output.visited_pcs {
-                visited_pcs.entry(class_hash).or_default().extend(class_visited_pcs);
+            for (class_hash, class_visited_pcs) in locked_execution_output.visited_pcs.iter() {
+                visited_pcs.entry(*class_hash).or_default().extend(class_visited_pcs);
             }
         }
 

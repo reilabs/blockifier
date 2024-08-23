@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
@@ -12,7 +12,6 @@ use crate::concurrency::test_utils::{safe_versioned_state_for_testing, DEFAULT_C
 use crate::concurrency::versioned_state::ThreadSafeVersionedState;
 use crate::state::cached_state::{CachedState, ContractClassMapping, StateMaps};
 use crate::state::state_api::UpdatableState;
-use crate::state::visited_pcs::VisitedPcsSet;
 use crate::storage_key;
 use crate::test_utils::dict_state_reader::DictStateReader;
 
@@ -123,9 +122,7 @@ fn scheduler_flow_test(
 
 fn get_reads_writes_for(
     task: Task,
-    versioned_state: &ThreadSafeVersionedState<
-        CachedState<HashSet<usize>, DictStateReader, VisitedPcsSet>,
-    >,
+    versioned_state: &ThreadSafeVersionedState<CachedState<DictStateReader>>,
 ) -> (StateMaps, StateMaps) {
     match task {
         Task::ExecutionTask(tx_index) => {

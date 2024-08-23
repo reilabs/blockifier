@@ -284,7 +284,6 @@ fn test_calculate_tx_gas_usage(
     max_resource_bounds: ResourceBoundsMapping,
     #[values(false, true)] use_kzg_da: bool,
 ) {
-    use crate::state::visited_pcs::VisitedPcsSet;
     use crate::transaction::account_transaction::AccountTransaction;
 
     let account_cairo_version = CairoVersion::Cairo0;
@@ -305,15 +304,14 @@ fn test_calculate_tx_gas_usage(
     let calldata_length = account_tx.calldata_length();
     let signature_length = account_tx.signature_length();
     let fee_token_address = chain_info.fee_token_address(&account_tx.fee_type());
-    let tx_execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            state,
-            block_context,
-            true,
-            true,
-        )
-        .unwrap();
+    let tx_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap();
 
     let n_storage_updates = 1; // For the account balance update.
     let n_modified_contracts = 1;
@@ -362,15 +360,14 @@ fn test_calculate_tx_gas_usage(
 
     let calldata_length = account_tx.calldata_length();
     let signature_length = account_tx.signature_length();
-    let tx_execution_info =
-        <AccountTransaction as ExecutableTransaction<_, _, VisitedPcsSet>>::execute(
-            &account_tx,
-            state,
-            block_context,
-            true,
-            true,
-        )
-        .unwrap();
+    let tx_execution_info = <AccountTransaction as ExecutableTransaction<_>>::execute(
+        &account_tx,
+        state,
+        block_context,
+        true,
+        true,
+    )
+    .unwrap();
     // For the balance update of the sender and the recipient.
     let n_storage_updates = 2;
     // Only the account contract modification (nonce update) excluding the fee token contract.
