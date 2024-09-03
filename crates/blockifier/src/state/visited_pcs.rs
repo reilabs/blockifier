@@ -1,4 +1,4 @@
-use std::collections::hash_map::{Entry, IntoIter, Iter};
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 
@@ -20,7 +20,7 @@ where
     ///
     /// The elements of the vector `pcs` match the type of field `pc` in
     /// [`cairo_vm::vm::trace::trace_entry::RelocatedTraceEntry`]
-    fn insert(&mut self, class_hash: &ClassHash, pcs: &Vec<usize>);
+    fn insert(&mut self, class_hash: &ClassHash, pcs: &[usize]);
 
     /// The function `extend` is used to extend an instance of `VisitedPcs` with another one.
     fn extend(&mut self, class_hash: &ClassHash, pcs: &Self::T);
@@ -40,11 +40,6 @@ where
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct VisitedPcsSet(HashMap<ClassHash, HashSet<usize>>);
-impl VisitedPcsSet {
-    pub fn iter(&self) -> impl Iterator<Item = (&ClassHash, &HashSet<usize>)> {
-        self.into_iter()
-    }
-}
 impl VisitedPcs for VisitedPcsSet {
     type T = HashSet<usize>;
 
@@ -52,7 +47,7 @@ impl VisitedPcs for VisitedPcsSet {
         VisitedPcsSet(HashMap::default())
     }
 
-    fn insert(&mut self, class_hash: &ClassHash, pcs: &Vec<usize>) {
+    fn insert(&mut self, class_hash: &ClassHash, pcs: &[usize]) {
         self.0.entry(*class_hash).or_default().extend(pcs);
     }
 
@@ -74,21 +69,5 @@ impl VisitedPcs for VisitedPcsSet {
 
     fn to_set(pcs: Self::T) -> HashSet<usize> {
         pcs
-    }
-}
-impl IntoIterator for VisitedPcsSet {
-    type Item = (ClassHash, HashSet<usize>);
-    type IntoIter = IntoIter<ClassHash, HashSet<usize>>;
-
-    fn into_iter(self) -> IntoIter<ClassHash, HashSet<usize>> {
-        self.0.into_iter()
-    }
-}
-impl<'a> IntoIterator for &'a VisitedPcsSet {
-    type Item = (&'a ClassHash, &'a HashSet<usize>);
-    type IntoIter = Iter<'a, ClassHash, HashSet<usize>>;
-
-    fn into_iter(self) -> Iter<'a, ClassHash, HashSet<usize>> {
-        self.0.iter()
     }
 }
