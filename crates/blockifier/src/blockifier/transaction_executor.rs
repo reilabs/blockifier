@@ -87,10 +87,9 @@ impl<S: StateReader, V: VisitedPcs> TransactionExecutor<S, V> {
         &mut self,
         tx: &Transaction,
     ) -> TransactionExecutorResult<TransactionExecutionInfo> {
-        let mut transactional_state: TransactionalState<'_, _, V> =
-            TransactionalState::create_transactional(
-                self.block_state.as_mut().expect(BLOCK_STATE_ACCESS_ERR),
-            );
+        let mut transactional_state = TransactionalState::create_transactional(
+            self.block_state.as_mut().expect(BLOCK_STATE_ACCESS_ERR),
+        );
         // Executing a single transaction cannot be done in a concurrent mode.
         let execution_flags =
             ExecutionFlags { charge_fee: true, validate: true, concurrency_mode: false };
