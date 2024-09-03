@@ -380,8 +380,7 @@ impl AccountTransaction {
         let fee_address = block_context.chain_info.fee_token_address(&tx_info.fee_type());
         let (sequencer_balance_key_low, sequencer_balance_key_high) =
             get_sequencer_balance_keys(block_context);
-        let mut transfer_state: TransactionalState<'_, _, V> =
-            TransactionalState::create_transactional(state);
+        let mut transfer_state = TransactionalState::create_transactional(state);
 
         // Set the initial sequencer balance to avoid tarnishing the read-set of the transaction.
         let cache = transfer_state.cache.get_mut();
@@ -510,8 +509,7 @@ impl AccountTransaction {
         // Create copies of state and resources for the execution.
         // Both will be rolled back if the execution is reverted or committed upon success.
         let mut execution_resources = resources.clone();
-        let mut execution_state: TransactionalState<'_, _, V> =
-            TransactionalState::create_transactional(state);
+        let mut execution_state = TransactionalState::create_transactional(state);
 
         let execution_result = self.run_execute(
             &mut execution_state,
