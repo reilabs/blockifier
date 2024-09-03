@@ -45,7 +45,7 @@ pub struct WorkerExecutor<'a, S: StateReader, V: VisitedPcs> {
     pub block_context: &'a BlockContext,
     pub bouncer: Mutex<&'a mut Bouncer>,
 }
-impl<'a, S: StateReader, V: VisitedPcs + Default + Debug> WorkerExecutor<'a, S, V> {
+impl<'a, S: StateReader, V: VisitedPcs> WorkerExecutor<'a, S, V> {
     pub fn new(
         state: ThreadSafeVersionedState<S>,
         chunk: &'a [Transaction],
