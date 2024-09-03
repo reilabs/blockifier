@@ -105,22 +105,11 @@ pub trait State: StateReader {
     /// Marks the given set of PC values as visited for the given class hash.
     // TODO(lior): Once we have a BlockResources object, move this logic there. Make sure reverted
     //   entry points do not affect the final set of PCs.
-    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &Vec<usize>);
+    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &[usize]);
 }
 
 /// A class defining the API for updating a state with transactions writes.
 pub trait UpdatableState: StateReader {
-    type T;
-
-    fn apply_writes(
-        &mut self,
-        writes: &StateMaps,
-        class_hash_to_class: &ContractClassMapping,
-        visited_pcs: &Self::T,
-    );
-}
-
-pub trait UpdatableStatetTest: StateReader {
     type T;
 
     fn apply_writes(

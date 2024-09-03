@@ -296,12 +296,12 @@ fn test_simulate_validate_charge_fee_pre_validate(
 
     // Fourth scenario: L1 gas price bound lower than the price on the block.
     if !is_deprecated {
-        let account_tx = account_invoke_tx(invoke_tx_args! {
+        let result = account_invoke_tx(invoke_tx_args! {
             resource_bounds: l1_resource_bounds(MAX_L1_GAS_AMOUNT, u128::from(gas_price) - 1),
             nonce: nonce_manager.next(account_address),
             ..pre_validation_base_args
-        });
-        let result = account_tx.execute(&mut state, &block_context, charge_fee, validate);
+        })
+        .execute(&mut state, &block_context, charge_fee, validate);
         if !charge_fee {
             check_gas_and_fee(
                 &block_context,

@@ -748,7 +748,7 @@ fn assert_failure_if_resource_bounds_exceed_balance(
     match block_context.to_tx_context(&invalid_tx).tx_info {
         TransactionInfo::Deprecated(context) => {
             assert_matches!(
-                invalid_tx.execute( state, block_context, true, true).unwrap_err(),
+                invalid_tx.execute(state, block_context, true, true).unwrap_err(),
                 TransactionExecutionError::TransactionPreValidationError(
                     TransactionPreValidationError::TransactionFeeError(
                         TransactionFeeError::MaxFeeExceedsBalance{ max_fee, .. }))
@@ -758,7 +758,7 @@ fn assert_failure_if_resource_bounds_exceed_balance(
         TransactionInfo::Current(context) => {
             let l1_bounds = context.l1_resource_bounds().unwrap();
             assert_matches!(
-                invalid_tx.execute( state, block_context, true, true).unwrap_err(),
+                invalid_tx.execute(state, block_context, true, true).unwrap_err(),
                 TransactionExecutionError::TransactionPreValidationError(
                     TransactionPreValidationError::TransactionFeeError(
                         TransactionFeeError::L1GasBoundsExceedBalance{ max_amount, max_price, .. }))

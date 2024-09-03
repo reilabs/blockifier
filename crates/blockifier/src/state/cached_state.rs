@@ -278,7 +278,7 @@ impl<S: StateReader, V: VisitedPcs> State for CachedState<S, V> {
         Ok(())
     }
 
-    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &Vec<usize>) {
+    fn add_visited_pcs(&mut self, class_hash: ClassHash, pcs: &[usize]) {
         self.visited_pcs.insert(&class_hash, pcs);
     }
 }
