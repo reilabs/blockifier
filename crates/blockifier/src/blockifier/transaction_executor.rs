@@ -173,7 +173,11 @@ impl<S: StateReader, V: VisitedPcs> TransactionExecutor<S, V> {
     }
 }
 
-impl<S: StateReader + Send + Sync, V: VisitedPcs + Send + Sync> TransactionExecutor<S, V> {
+impl<S, V> TransactionExecutor<S, V>
+where
+    S: StateReader + Send + Sync,
+    V: VisitedPcs + Send + Sync,
+{
     /// Executes the given transactions on the state maintained by the executor.
     /// Stops if and when there is no more room in the block, and returns the executed transactions'
     /// results.

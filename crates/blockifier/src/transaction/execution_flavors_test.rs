@@ -186,10 +186,10 @@ fn test_simulate_validate_charge_fee_pre_validate(
     // First scenario: invalid nonce. Regardless of flags, should fail.
     let invalid_nonce = nonce!(7_u8);
     let account_nonce = state.get_nonce_at(account_address).unwrap();
-    let account_tx = account_invoke_tx(
+    let result = account_invoke_tx(
         invoke_tx_args! {nonce: invalid_nonce, ..pre_validation_base_args.clone()},
-    );
-    let result = account_tx.execute(&mut state, &block_context, charge_fee, validate);
+    )
+    .execute(&mut state, &block_context, charge_fee, validate);
     assert_matches!(
         result.unwrap_err(),
         TransactionExecutionError::TransactionPreValidationError(
@@ -211,13 +211,13 @@ fn test_simulate_validate_charge_fee_pre_validate(
         validate,
         &fee_type,
     );
-    let account_tx = account_invoke_tx(invoke_tx_args! {
+    let result = account_invoke_tx(invoke_tx_args! {
         max_fee: Fee(10),
         resource_bounds: l1_resource_bounds(10, 10),
         nonce: nonce_manager.next(account_address),
         ..pre_validation_base_args.clone()
-    });
-    let result = account_tx.execute(&mut state, &block_context, charge_fee, validate);
+    })
+    .execute(&mut state, &block_context, charge_fee, validate);
     if !charge_fee {
         check_gas_and_fee(
             &block_context,
@@ -255,13 +255,13 @@ fn test_simulate_validate_charge_fee_pre_validate(
     // TODO(Ori, 1/2/2024): Write an indicative expect message explaining why the conversion works.
     let balance_over_gas_price: u64 =
         (BALANCE / gas_price).try_into().expect("Failed to convert u128 to u64.");
-    let account_tx = account_invoke_tx(invoke_tx_args! {
+    let result = account_invoke_tx(invoke_tx_args! {
         max_fee: Fee(BALANCE + 1),
         resource_bounds: l1_resource_bounds(balance_over_gas_price + 10, gas_price.into()),
         nonce: nonce_manager.next(account_address),
         ..pre_validation_base_args.clone()
-    });
-    let result = account_tx.execute(&mut state, &block_context, charge_fee, validate);
+    })
+    .execute(&mut state, &block_context, charge_fee, validate);
     if !charge_fee {
         check_gas_and_fee(
             &block_context,
@@ -356,7 +356,7 @@ fn test_simulate_validate_charge_fee_fail_validate(
         validate,
         &fee_type,
     );
-    let account_tx = account_invoke_tx(invoke_tx_args! {
+    let result = account_invoke_tx(invoke_tx_args! {
         max_fee,
         resource_bounds: max_resource_bounds,
         signature: TransactionSignature(vec![
@@ -368,8 +368,8 @@ fn test_simulate_validate_charge_fee_fail_validate(
         version,
         nonce: nonce_manager.next(faulty_account_address),
         only_query,
-    });
-    let result = account_tx.execute(&mut falliable_state, &block_context, charge_fee, validate);
+    })
+    .execute(&mut falliable_state, &block_context, charge_fee, validate);
     if !validate {
         // The reported fee should be the actual cost, regardless of whether or not fee is charged.
         check_gas_and_fee(
@@ -435,13 +435,13 @@ fn test_simulate_validate_charge_fee_mid_execution(
         validate,
         &fee_type,
     );
-    let account_tx = account_invoke_tx(invoke_tx_args! {
+    let tx_execution_info = account_invoke_tx(invoke_tx_args! {
         calldata: recurse_calldata(test_contract_address, true, 3),
         nonce: nonce_manager.next(account_address),
         ..execution_base_args.clone()
-    });
-    let tx_execution_info =
-        account_tx.execute(&mut state, &block_context, charge_fee, validate).unwrap();
+    })
+    .execute(&mut state, &block_context, charge_fee, validate)
+    .unwrap();
     assert!(tx_execution_info.is_reverted());
     check_gas_and_fee(
         &block_context,
@@ -475,15 +475,15 @@ fn test_simulate_validate_charge_fee_mid_execution(
         validate,
         &fee_type,
     );
-    let account_tx = account_invoke_tx(invoke_tx_args! {
+    let tx_execution_info = account_invoke_tx(invoke_tx_args! {
         max_fee: fee_bound,
         resource_bounds: l1_resource_bounds(gas_bound, gas_price.into()),
         calldata: recurse_calldata(test_contract_address, false, 1000),
         nonce: nonce_manager.next(account_address),
         ..execution_base_args.clone()
-    });
-    let tx_execution_info =
-        account_tx.execute(&mut state, &block_context, charge_fee, validate).unwrap();
+    })
+    .execute(&mut state, &block_context, charge_fee, validate)
+    .unwrap();
     assert_eq!(tx_execution_info.is_reverted(), charge_fee);
     if charge_fee {
         assert!(tx_execution_info.revert_error.clone().unwrap().contains("no remaining steps"));
@@ -527,15 +527,15 @@ fn test_simulate_validate_charge_fee_mid_execution(
         GasVector::from_l1_gas(block_limit_gas.into()),
         &fee_type,
     );
-    let account_tx = account_invoke_tx(invoke_tx_args! {
+    let tx_execution_info = account_invoke_tx(invoke_tx_args! {
         max_fee: huge_fee,
         resource_bounds: l1_resource_bounds(huge_gas_limit, gas_price.into()),
         calldata: recurse_calldata(test_contract_address, false, 10000),
         nonce: nonce_manager.next(account_address),
         ..execution_base_args
-    });
-    let tx_execution_info =
-        account_tx.execute(&mut state, &low_step_block_context, charge_fee, validate).unwrap();
+    })
+    .execute(&mut state, &low_step_block_context, charge_fee, validate)
+    .unwrap();
     assert!(tx_execution_info.revert_error.clone().unwrap().contains("no remaining steps"));
     // Complete resources used are reported as transaction_receipt.resources; but only the charged
     // final fee is shown in actual_fee. As a sanity check, verify that the fee derived directly
@@ -608,7 +608,7 @@ fn test_simulate_validate_charge_fee_post_execution(
         validate,
         &fee_type,
     );
-    let account_tx = account_invoke_tx(invoke_tx_args! {
+    let tx_execution_info = account_invoke_tx(invoke_tx_args! {
         max_fee: just_not_enough_fee_bound,
         resource_bounds: l1_resource_bounds(just_not_enough_gas_bound, gas_price.into()),
         calldata: recurse_calldata(test_contract_address, false, 1000),
@@ -616,9 +616,9 @@ fn test_simulate_validate_charge_fee_post_execution(
         sender_address: account_address,
         version,
         only_query,
-    });
-    let tx_execution_info =
-        account_tx.execute(&mut state, &block_context, charge_fee, validate).unwrap();
+    })
+    .execute(&mut state, &block_context, charge_fee, validate)
+    .unwrap();
     assert_eq!(tx_execution_info.is_reverted(), charge_fee);
     if charge_fee {
         assert!(tx_execution_info.revert_error.clone().unwrap().starts_with(if is_deprecated {
@@ -673,7 +673,7 @@ fn test_simulate_validate_charge_fee_post_execution(
             felt!(0_u8),
         ],
     );
-    let account_tx = account_invoke_tx(invoke_tx_args! {
+    let tx_execution_info = account_invoke_tx(invoke_tx_args! {
         max_fee: actual_fee,
         resource_bounds: l1_resource_bounds(success_actual_gas, gas_price.into()),
         calldata: transfer_calldata,
@@ -681,9 +681,9 @@ fn test_simulate_validate_charge_fee_post_execution(
         sender_address: account_address,
         version,
         only_query,
-    });
-    let tx_execution_info =
-        account_tx.execute(&mut state, &block_context, charge_fee, validate).unwrap();
+    })
+    .execute(&mut state, &block_context, charge_fee, validate)
+    .unwrap();
     assert_eq!(tx_execution_info.is_reverted(), charge_fee);
     if charge_fee {
         assert!(
