@@ -12,8 +12,7 @@ use crate::blockifier::transaction_executor::{
 use crate::bouncer::{verify_tx_weights_in_bounds, Bouncer, BouncerWeights, BuiltinCount};
 use crate::context::BlockContext;
 use crate::execution::call_info::ExecutionSummary;
-use crate::state::cached_state::{StateChangesKeys, TransactionalState};
-use crate::state::visited_pcs::VisitedPcsSet;
+use crate::state::cached_state::StateChangesKeys;
 use crate::storage_key;
 use crate::test_utils::initial_test_state::test_state;
 use crate::transaction::errors::TransactionExecutionError;
@@ -185,11 +184,11 @@ fn test_bouncer_try_update(
 ) {
     use cairo_vm::vm::runners::cairo_runner::ExecutionResources;
 
+    use crate::state::cached_state::TransactionalState;
     use crate::transaction::objects::TransactionResources;
 
     let state = &mut test_state(&BlockContext::create_for_account_testing().chain_info, 0, &[]);
-    let mut transactional_state: TransactionalState<'_, _, VisitedPcsSet> =
-        TransactionalState::create_transactional(state);
+    let mut transactional_state = TransactionalState::create_transactional_for_testing(state);
 
     // Setup the bouncer.
     let block_max_capacity = BouncerWeights {

@@ -234,6 +234,14 @@ impl<S: StateReader> ThreadSafeVersionedState<S> {
         VersionedStateProxy { tx_index, state: self.0.clone(), _marker: PhantomData }
     }
 
+    #[cfg(test)]
+    pub fn pin_version_for_testing(
+        &self,
+        tx_index: TxIndex,
+    ) -> VersionedStateProxy<S, crate::state::visited_pcs::VisitedPcsSet> {
+        VersionedStateProxy { tx_index, state: self.0.clone(), _marker: PhantomData }
+    }
+
     pub fn into_inner_state(self) -> VersionedState<S> {
         Arc::try_unwrap(self.0)
             .unwrap_or_else(|_| {

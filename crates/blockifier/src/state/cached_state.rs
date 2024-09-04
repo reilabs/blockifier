@@ -7,7 +7,7 @@ use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::state::StorageKey;
 use starknet_types_core::felt::Felt;
 
-use super::visited_pcs::VisitedPcs;
+use super::visited_pcs::{VisitedPcs, VisitedPcsSet};
 use crate::abi::abi_utils::get_fee_token_var_address;
 use crate::context::TransactionContext;
 use crate::execution::contract_class::ContractClass;
@@ -124,7 +124,7 @@ impl<S: StateReader, V: VisitedPcs> UpdatableState for CachedState<S, V> {
 }
 
 #[cfg(any(feature = "testing", test))]
-impl<S: StateReader, V: VisitedPcs> From<S> for CachedState<S, V> {
+impl<S: StateReader> From<S> for CachedState<S, VisitedPcsSet> {
     fn from(state_reader: S) -> Self {
         CachedState::new(state_reader)
     }
@@ -513,7 +513,14 @@ impl<'a, S: StateReader + ?Sized> StateReader for MutRefState<'a, S> {
 }
 
 pub type TransactionalState<'a, U, V> = CachedState<MutRefState<'a, U>, V>;
-
+impl<'a, S: StateReader> TransactionalState<'a, S, VisitedPcsSet> {
+    #[cfg(test)]
+    pub fn create_transactional_for_testing(
+        state: &mut S,
+    ) -> TransactionalState<'_, S, VisitedPcsSet> {
+        TransactionalState::create_transactional(state)
+    }
+}
 impl<'a, S: StateReader, V: VisitedPcs> TransactionalState<'a, S, V> {
     /// Creates a transactional instance from the given updatable state.
     /// It allows performing buffered modifying actions on the given state, which

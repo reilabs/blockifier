@@ -17,7 +17,7 @@ use crate::state::cached_state::{
     ContractClassMapping, StateChanges, StateMaps, TransactionalState,
 };
 use crate::state::state_api::{StateReader, UpdatableState};
-use crate::state::visited_pcs::VisitedPcs;
+use crate::state::visited_pcs::{VisitedPcs, VisitedPcsSet};
 use crate::transaction::objects::{TransactionExecutionInfo, TransactionExecutionResult};
 use crate::transaction::transaction_execution::Transaction;
 use crate::transaction::transactions::{ExecutableTransaction, ExecutionFlags};
@@ -44,6 +44,17 @@ pub struct WorkerExecutor<'a, S: StateReader, V: VisitedPcs> {
     pub execution_outputs: Box<[Mutex<Option<ExecutionTaskOutput<V>>>]>,
     pub block_context: &'a BlockContext,
     pub bouncer: Mutex<&'a mut Bouncer>,
+}
+impl<'a, S: StateReader> WorkerExecutor<'a, S, VisitedPcsSet> {
+    #[cfg(test)]
+    pub fn new_for_testing(
+        state: ThreadSafeVersionedState<S>,
+        chunk: &'a [Transaction],
+        block_context: &'a BlockContext,
+        bouncer: Mutex<&'a mut Bouncer>,
+    ) -> WorkerExecutor<'a, S, VisitedPcsSet> {
+        WorkerExecutor::new(state, chunk, block_context, bouncer)
+    }
 }
 impl<'a, S: StateReader, V: VisitedPcs> WorkerExecutor<'a, S, V> {
     pub fn new(
