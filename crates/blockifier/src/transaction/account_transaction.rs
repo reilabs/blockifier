@@ -632,7 +632,7 @@ impl AccountTransaction {
     }
 }
 
-impl<V: VisitedPcs, U: UpdatableState<T = V>> ExecutableTransaction<V, U> for AccountTransaction {
+impl<V: VisitedPcs, U: UpdatableState<Pcs = V>> ExecutableTransaction<V, U> for AccountTransaction {
     fn execute_raw(
         &self,
         state: &mut TransactionalState<'_, U, V>,

@@ -110,12 +110,12 @@ pub trait State: StateReader {
 
 /// A class defining the API for updating a state with transactions writes.
 pub trait UpdatableState: StateReader {
-    type T;
+    type Pcs;
 
     fn apply_writes(
         &mut self,
         writes: &StateMaps,
         class_hash_to_class: &ContractClassMapping,
-        visited_pcs: &Self::T,
+        visited_pcs: &Self::Pcs,
     );
 }

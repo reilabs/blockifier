@@ -49,7 +49,7 @@ pub struct ExecutionFlags {
     pub concurrency_mode: bool,
 }
 
-pub trait ExecutableTransaction<V: VisitedPcs, U: UpdatableState<T = V>>: Sized {
+pub trait ExecutableTransaction<V: VisitedPcs, U: UpdatableState<Pcs = V>>: Sized {
     /// Executes the transaction in a transactional manner
     /// (if it fails, given state does not modify).
     fn execute(

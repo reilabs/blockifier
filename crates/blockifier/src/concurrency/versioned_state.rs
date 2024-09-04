@@ -199,7 +199,7 @@ impl<S: StateReader> VersionedState<S> {
     }
 }
 
-impl<V: VisitedPcs, U: UpdatableState<T = V>> VersionedState<U> {
+impl<V: VisitedPcs, U: UpdatableState<Pcs = V>> VersionedState<U> {
     pub fn commit_chunk_and_recover_block_state(
         mut self,
         n_committed_txs: usize,
@@ -283,7 +283,7 @@ impl<S: StateReader, V: VisitedPcs> VersionedStateProxy<S, V> {
 
 // TODO(Noa, 15/5/24): Consider using visited_pcs.
 impl<V: VisitedPcs, S: StateReader> UpdatableState for VersionedStateProxy<S, V> {
-    type T = V;
+    type Pcs = V;
 
     fn apply_writes(
         &mut self,

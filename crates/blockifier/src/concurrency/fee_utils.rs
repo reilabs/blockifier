@@ -23,7 +23,7 @@ mod test;
 pub(crate) const STORAGE_READ_SEQUENCER_BALANCE_INDICES: (usize, usize) = (2, 3);
 
 // Completes the fee transfer flow if needed (if the transfer was made in concurrent mode).
-pub fn complete_fee_transfer_flow<V: VisitedPcs, U: UpdatableState<T = V>>(
+pub fn complete_fee_transfer_flow<V: VisitedPcs, U: UpdatableState<Pcs = V>>(
     tx_context: &TransactionContext,
     tx_execution_info: &mut TransactionExecutionInfo,
     state: &mut U,
@@ -94,7 +94,7 @@ pub fn fill_sequencer_balance_reads(
     storage_read_values[high_index] = high;
 }
 
-pub fn add_fee_to_sequencer_balance<V: VisitedPcs, U: UpdatableState<T = V>>(
+pub fn add_fee_to_sequencer_balance<V: VisitedPcs, U: UpdatableState<Pcs = V>>(
     fee_token_address: ContractAddress,
     state: &mut U,
     actual_fee: Fee,

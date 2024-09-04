@@ -101,7 +101,9 @@ impl TransactionInfoCreator for Transaction {
     }
 }
 
-impl<V: VisitedPcs, U: UpdatableState<T = V>> ExecutableTransaction<V, U> for L1HandlerTransaction {
+impl<V: VisitedPcs, U: UpdatableState<Pcs = V>> ExecutableTransaction<V, U>
+    for L1HandlerTransaction
+{
     fn execute_raw(
         &self,
         state: &mut TransactionalState<'_, U, V>,
@@ -152,7 +154,7 @@ impl<V: VisitedPcs, U: UpdatableState<T = V>> ExecutableTransaction<V, U> for L1
     }
 }
 
-impl<V: VisitedPcs, U: UpdatableState<T = V>> ExecutableTransaction<V, U> for Transaction {
+impl<V: VisitedPcs, U: UpdatableState<Pcs = V>> ExecutableTransaction<V, U> for Transaction {
     fn execute_raw(
         &self,
         state: &mut TransactionalState<'_, U, V>,

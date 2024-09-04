@@ -270,7 +270,7 @@ impl<'a, S: StateReader, V: VisitedPcs> WorkerExecutor<'a, S, V> {
     }
 }
 
-impl<'a, V: VisitedPcs, U: UpdatableState<T = V>> WorkerExecutor<'a, U, V> {
+impl<'a, V: VisitedPcs, U: UpdatableState<Pcs = V>> WorkerExecutor<'a, U, V> {
     pub fn commit_chunk_and_recover_block_state(self, n_committed_txs: usize, visited_pcs: V) -> U {
         self.state
             .into_inner_state()

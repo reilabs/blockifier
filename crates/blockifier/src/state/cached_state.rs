@@ -109,7 +109,7 @@ impl<S: StateReader, V: VisitedPcs> CachedState<S, V> {
 }
 
 impl<S: StateReader, V: VisitedPcs> UpdatableState for CachedState<S, V> {
-    type T = V;
+    type Pcs = V;
 
     fn apply_writes(
         &mut self,
@@ -535,7 +535,7 @@ impl<'a, S: StateReader, V: VisitedPcs> TransactionalState<'a, S, V> {
 }
 
 /// Adds the ability to perform a transactional execution.
-impl<'a, V: VisitedPcs, U: UpdatableState<T = V>> TransactionalState<'a, U, V> {
+impl<'a, V: VisitedPcs, U: UpdatableState<Pcs = V>> TransactionalState<'a, U, V> {
     /// Commits changes in the child (wrapping) state to its parent.
     pub fn commit(self) {
         let state = self.state.0;
