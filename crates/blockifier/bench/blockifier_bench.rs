@@ -2,18 +2,23 @@
 //! various aspects related to transferring between accounts, including preparation
 //! and execution of transfers.
 //!
-//! The main benchmark function is `transfers_benchmark`, which measures the performance
-//! of transfers between randomly created accounts, which are iterated over round-robin.
+//! The benchmark function `transfers_benchmark` measures the performance of transfers between
+//! randomly created accounts, which are iterated over round-robin.
 //!
-//! The other benchmark function is `execution_benchmark` which measures the performance of the
-//! method [`blockifier::transactions::transaction::ExecutableTransaction::execute`] by executing
-//! the entry point `advance_counter` of the test contract.
+//! The benchmark function `execution_benchmark` measures the performance of the method
+//! [`blockifier::transactions::transaction::ExecutableTransaction::execute`] by executing the entry
+//! point `advance_counter` of the test contract.
 //!
-//! //! Run the benchmarks using `cargo bench --bench blockifier_bench`.
+//! The benchmark function `cached_state_benchmark` measures the performance of
+//! [`blockifier::state::cached_state::CachedState::add_visited_pcs`] method using a realistic size
+//! of data.
+//!
+//! Run the benchmarks using `cargo bench --bench blockifier_bench`.
 
 use blockifier::context::BlockContext;
 use blockifier::invoke_tx_args;
-use blockifier::state::cached_state::CachedState;
+use blockifier::state::cached_state::{CachedState, TransactionalState};
+use blockifier::state::state_api::State;
 use blockifier::test_utils::contracts::FeatureContract;
 use blockifier::test_utils::dict_state_reader::DictStateReader;
 use blockifier::test_utils::initial_test_state::test_state;
@@ -25,7 +30,9 @@ use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::test_utils::{account_invoke_tx, block_context, max_resource_bounds};
 use blockifier::transaction::transactions::ExecutableTransaction;
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
+use starknet_api::core::ClassHash;
 use starknet_api::felt;
+use starknet_api::hash::StarkHash;
 
 pub fn transfers_benchmark(c: &mut Criterion) {
     let transfers_generator_config = TransfersGeneratorConfig {
@@ -39,6 +46,155 @@ pub fn transfers_benchmark(c: &mut Criterion) {
         benchmark.iter(|| {
             transfers_generator.execute_transfers();
         })
+    });
+}
+
+pub fn cached_state_benchmark(c: &mut Criterion) {
+    fn get_random_array(size: usize) -> Vec<usize> {
+        let mut vec: Vec<usize> = Vec::with_capacity(size);
+        for _ in 0..vec.capacity() {
+            vec.push(rand::random());
+        }
+        vec
+    }
+
+    fn create_class_hash(class_hash: &str) -> ClassHash {
+        ClassHash(StarkHash::from_hex_unchecked(class_hash))
+    }
+
+    // The state shared across all iterations.
+    let mut cached_state: CachedState<DictStateReader> = CachedState::default();
+
+    c.bench_function("cached_state", move |benchmark| {
+        benchmark.iter_batched(
+            || {
+                // This anonymous function creates the simulated visited program counters to add in
+                // `cached_state`.
+                // The numbers are taken from tx hash
+                // 0x0177C9365875CAA840EA8F03F97B0E3A8EE8851A8B952BF157B5DBD4FECCB060. This
+                // transaction has been chosen randomly, but it may not be representative of the
+                // average transaction on Starknet.
+
+                let mut class_hashes = Vec::new();
+                let mut random_arrays = Vec::new();
+
+                let class_hash = create_class_hash("a");
+                let random_array = get_random_array(11393).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("a");
+                let random_array = get_random_array(453).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("a");
+                let random_array = get_random_array(604).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("a");
+                let random_array = get_random_array(806).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("b");
+                let random_array = get_random_array(1327).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("b");
+                let random_array = get_random_array(1135).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("b");
+                let random_array = get_random_array(213).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("b");
+                let random_array = get_random_array(135).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("c");
+                let random_array = get_random_array(348).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("c");
+                let random_array = get_random_array(88).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("c");
+                let random_array = get_random_array(348).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("c");
+                let random_array = get_random_array(348).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("d");
+                let random_array = get_random_array(875).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("d");
+                let random_array = get_random_array(450).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("d");
+                let random_array = get_random_array(255).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("d");
+                let random_array = get_random_array(210).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("d");
+                let random_array = get_random_array(1403).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("d");
+                let random_array = get_random_array(210).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("d");
+                let random_array = get_random_array(210).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("e");
+                let random_array = get_random_array(2386).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                let class_hash = create_class_hash("e");
+                let random_array = get_random_array(3602).into_iter().collect();
+                class_hashes.push(class_hash);
+                random_arrays.push(random_array);
+
+                (class_hashes, random_arrays)
+            },
+            |input_data| {
+                let mut transactional_state =
+                    TransactionalState::create_transactional(&mut cached_state);
+                for (class_hash, random_array) in input_data.0.into_iter().zip(input_data.1) {
+                    transactional_state.add_visited_pcs(class_hash, &random_array);
+                }
+                transactional_state.commit();
+            },
+            BatchSize::SmallInput,
+        )
     });
 }
 
@@ -84,5 +240,5 @@ pub fn execution_benchmark(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, transfers_benchmark, execution_benchmark);
+criterion_group!(benches, transfers_benchmark, execution_benchmark, cached_state_benchmark);
 criterion_main!(benches);
