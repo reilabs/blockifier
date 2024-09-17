@@ -72,8 +72,9 @@ pub fn fill_sequencer_balance_reads(
 ) {
     let storage_read_values = if fee_transfer_call_info.inner_calls.is_empty() {
         &mut fee_transfer_call_info.storage_read_values
-    } else {
-        // Proxy pattern.
+    } else
+    // Proxy pattern.
+    {
         assert_eq!(
             fee_transfer_call_info.inner_calls.len(),
             1,

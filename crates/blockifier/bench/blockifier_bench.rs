@@ -15,6 +15,8 @@
 //!
 //! Run the benchmarks using `cargo bench --bench blockifier_bench`.
 
+use std::time::Duration;
+
 use blockifier::context::BlockContext;
 use blockifier::invoke_tx_args;
 use blockifier::state::cached_state::{CachedState, TransactionalState};
@@ -240,5 +242,9 @@ pub fn execution_benchmark(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, transfers_benchmark, execution_benchmark, cached_state_benchmark);
+criterion_group! {
+    name = benches;
+    config = Criterion::default().measurement_time(Duration::from_secs(20));
+    targets = transfers_benchmark, execution_benchmark, cached_state_benchmark
+}
 criterion_main!(benches);
