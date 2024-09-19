@@ -28,7 +28,7 @@ pub struct CachedState<S: StateReader> {
 }
 ```
 
-This snipped has been extracted from commit
+This snippet has been extracted from commit
 [14e6a87722c1d0c757b1aa2756ffabe3f248fd7d](https://github.com/reilabs/blockifier/blob/14e6a87722c1d0c757b1aa2756ffabe3f248fd7d/crates/blockifier/src/state/cached_state.rs#L36)
 
 ## After Changes
@@ -94,7 +94,9 @@ conditions:
 The script was called as follows, but you may need to [adjust the commit
 hashes](#after-changes) in question to reproduce these results:
 
-`bash scripts/bench.sh 14e6a87722c1d0c757b1aa2756ffabe3f248fd7d e39ae0be4cec31938399199e0a1070279b4a78ed`
+```bash
+bash scripts/bench.sh 14e6a87722c1d0c757b1aa2756ffabe3f248fd7d e39ae0be4cec31938399199e0a1070279b4a78ed
+```
 
 The noise threshold and confidence intervals are kept as per default
 Criterion.rs configuration.
