@@ -38,9 +38,10 @@ use crate::fee::fee_utils::balance_to_big_uint;
 use crate::fee::gas_usage::{
     estimate_minimal_gas_vector, get_da_gas_cost, get_onchain_data_segment_length,
 };
-use crate::state::cached_state::{CachedState, StateChangesCount, TransactionalState};
+use crate::state::cached_state::{CachedState, StateChangesCount};
 use crate::state::errors::StateError;
 use crate::state::state_api::{State, StateReader};
+use crate::state::visited_pcs::VisitedPcsSet;
 use crate::test_utils::contracts::FeatureContract;
 use crate::test_utils::declare::declare_tx;
 use crate::test_utils::deploy_account::deploy_account_tx;
@@ -248,7 +249,7 @@ fn get_expected_cairo_resources(
 /// and the sequencer (in both fee types) are as expected (assuming the initial sequencer balances
 /// are zero).
 fn validate_final_balances(
-    state: &mut CachedState<DictStateReader>,
+    state: &mut CachedState<DictStateReader, VisitedPcsSet>,
     chain_info: &ChainInfo,
     expected_actual_fee: Fee,
     erc20_account_balance_key: StorageKey,
@@ -496,7 +497,7 @@ fn test_invoke_tx(
 
 // Verifies the storage after each invoke execution in test_invoke_tx_advanced_operations.
 fn verify_storage_after_invoke_advanced_operations(
-    state: &mut CachedState<DictStateReader>,
+    state: &mut CachedState<DictStateReader, VisitedPcsSet>,
     contract_address: ContractAddress,
     account_address: ContractAddress,
     index: Felt,
@@ -740,7 +741,7 @@ fn test_state_get_fee_token_balance(
 }
 
 fn assert_failure_if_resource_bounds_exceed_balance(
-    state: &mut CachedState<DictStateReader>,
+    state: &mut CachedState<DictStateReader, VisitedPcsSet>,
     block_context: &BlockContext,
     invalid_tx: AccountTransaction,
 ) {
@@ -969,6 +970,8 @@ fn test_invalid_nonce(
     max_resource_bounds: ResourceBoundsMapping,
     #[values(CairoVersion::Cairo0, CairoVersion::Cairo1)] account_cairo_version: CairoVersion,
 ) {
+    use crate::state::cached_state::TransactionalState;
+
     let account_contract = FeatureContract::AccountWithoutValidations(account_cairo_version);
     let test_contract = FeatureContract::TestContract(CairoVersion::Cairo0);
     let state = &mut test_state(
@@ -981,7 +984,7 @@ fn test_invalid_nonce(
         calldata: create_trivial_calldata(test_contract.get_instance_address(0)),
         resource_bounds: max_resource_bounds,
     };
-    let mut transactional_state = TransactionalState::create_transactional(state);
+    let mut transactional_state = TransactionalState::create_transactional_for_testing(state);
 
     // Strict, negative flow: account nonce = 0, incoming tx nonce = 1.
     let invalid_nonce = nonce!(1_u8);

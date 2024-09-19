@@ -9,7 +9,6 @@ use starknet_api::transaction::{
 use starknet_api::{contract_address, felt, patricia_key};
 use starknet_types_core::felt::Felt;
 
-use super::WorkerExecutor;
 use crate::abi::abi_utils::get_fee_token_var_address;
 use crate::abi::sierra_types::next_storage_key;
 use crate::bouncer::Bouncer;
@@ -17,11 +16,12 @@ use crate::concurrency::fee_utils::STORAGE_READ_SEQUENCER_BALANCE_INDICES;
 use crate::concurrency::scheduler::{Task, TransactionStatus};
 use crate::concurrency::test_utils::safe_versioned_state_for_testing;
 use crate::concurrency::versioned_state::ThreadSafeVersionedState;
-use crate::concurrency::worker_logic::lock_mutex_in_array;
+use crate::concurrency::worker_logic::{lock_mutex_in_array, WorkerExecutor};
 use crate::context::{BlockContext, TransactionContext};
 use crate::fee::fee_utils::get_sequencer_balance_keys;
 use crate::state::cached_state::StateMaps;
 use crate::state::state_api::StateReader;
+use crate::state::visited_pcs::VisitedPcsSet;
 use crate::test_utils::contracts::FeatureContract;
 use crate::test_utils::declare::declare_tx;
 use crate::test_utils::initial_test_state::test_state;
@@ -61,7 +61,7 @@ fn verify_sequencer_balance_update<S: StateReader>(
     expected_sequencer_balance_low: u128,
 ) {
     let TransactionContext { block_context, tx_info } = tx_context;
-    let tx_version_state = state.pin_version(tx_index);
+    let tx_version_state = state.pin_version_for_testing(tx_index);
     let (sequencer_balance_key_low, sequencer_balance_key_high) =
         get_sequencer_balance_keys(block_context);
     for (expected_balance, storage_key) in [
@@ -105,8 +105,12 @@ pub fn test_commit_tx() {
     let cached_state =
         test_state(&block_context.chain_info, BALANCE, &[(account, 1), (test_contract, 1)]);
     let versioned_state = safe_versioned_state_for_testing(cached_state);
-    let executor =
-        WorkerExecutor::new(versioned_state, &txs, &block_context, Mutex::new(&mut bouncer));
+    let executor = WorkerExecutor::new_for_testing(
+        versioned_state,
+        &txs,
+        &block_context,
+        Mutex::new(&mut bouncer),
+    );
 
     // Execute transactions.
     // Simulate a concurrent run by executing tx1 before tx0.
@@ -205,14 +209,14 @@ fn test_commit_tx_when_sender_is_sequencer() {
 
     let state = test_state(&block_context.chain_info, BALANCE, &[(account, 1), (test_contract, 1)]);
     let versioned_state = safe_versioned_state_for_testing(state);
-    let executor = WorkerExecutor::new(
+    let executor = WorkerExecutor::new_for_testing(
         versioned_state,
         &sequencer_tx,
         &block_context,
         Mutex::new(&mut bouncer),
     );
     let tx_index = 0;
-    let tx_versioned_state = executor.state.pin_version(tx_index);
+    let tx_versioned_state = executor.state.pin_version_for_testing(tx_index);
 
     // Execute and save the execution result.
     executor.execute_tx(tx_index);
@@ -312,7 +316,7 @@ fn test_worker_execute(max_resource_bounds: ResourceBoundsMapping) {
         .collect::<Vec<Transaction>>();
 
     let mut bouncer = Bouncer::new(block_context.bouncer_config.clone());
-    let worker_executor = WorkerExecutor::new(
+    let worker_executor = WorkerExecutor::new_for_testing(
         safe_versioned_state.clone(),
         &txs,
         &block_context,
@@ -330,7 +334,7 @@ fn test_worker_execute(max_resource_bounds: ResourceBoundsMapping) {
     // Read a write made by the transaction.
     assert_eq!(
         safe_versioned_state
-            .pin_version(tx_index)
+            .pin_version_for_testing(tx_index)
             .get_storage_at(test_contract_address, storage_key)
             .unwrap(),
         storage_value
@@ -383,14 +387,17 @@ fn test_worker_execute(max_resource_bounds: ResourceBoundsMapping) {
 
     assert_eq!(execution_output.writes, writes);
     assert_eq!(execution_output.reads, reads);
-    assert_ne!(execution_output.visited_pcs, HashMap::default());
+    assert_ne!(execution_output.visited_pcs, VisitedPcsSet::default());
 
     // Failed execution.
     let tx_index = 1;
     worker_executor.execute(tx_index);
     // No write was made by the transaction.
     assert_eq!(
-        safe_versioned_state.pin_version(tx_index).get_nonce_at(account_address).unwrap(),
+        safe_versioned_state
+            .pin_version_for_testing(tx_index)
+            .get_nonce_at(account_address)
+            .unwrap(),
         nonce!(1_u8)
     );
     let execution_output = worker_executor.execution_outputs[tx_index].lock().unwrap();
@@ -402,21 +409,24 @@ fn test_worker_execute(max_resource_bounds: ResourceBoundsMapping) {
     };
     assert_eq!(execution_output.reads, reads);
     assert_eq!(execution_output.writes, StateMaps::default());
-    assert_eq!(execution_output.visited_pcs, HashMap::default());
+    assert_eq!(execution_output.visited_pcs, VisitedPcsSet::default());
 
     // Reverted execution.
     let tx_index = 2;
     worker_executor.execute(tx_index);
     // Read a write made by the transaction.
     assert_eq!(
-        safe_versioned_state.pin_version(tx_index).get_nonce_at(account_address).unwrap(),
+        safe_versioned_state
+            .pin_version_for_testing(tx_index)
+            .get_nonce_at(account_address)
+            .unwrap(),
         nonce!(2_u8)
     );
     let execution_output = worker_executor.execution_outputs[tx_index].lock().unwrap();
     let execution_output = execution_output.as_ref().unwrap();
     assert!(execution_output.result.as_ref().unwrap().is_reverted());
     assert_ne!(execution_output.writes, StateMaps::default());
-    assert_ne!(execution_output.visited_pcs, HashMap::default());
+    assert_ne!(execution_output.visited_pcs, VisitedPcsSet::default());
 
     // Validate status change.
     for tx_index in 0..3 {
@@ -474,7 +484,7 @@ fn test_worker_validate(max_resource_bounds: ResourceBoundsMapping) {
         .collect::<Vec<Transaction>>();
 
     let mut bouncer = Bouncer::new(block_context.bouncer_config.clone());
-    let worker_executor = WorkerExecutor::new(
+    let worker_executor = WorkerExecutor::new_for_testing(
         safe_versioned_state.clone(),
         &txs,
         &block_context,
@@ -500,7 +510,7 @@ fn test_worker_validate(max_resource_bounds: ResourceBoundsMapping) {
     // Verify writes exist in state.
     assert_eq!(
         safe_versioned_state
-            .pin_version(tx_index)
+            .pin_version_for_testing(tx_index)
             .get_storage_at(test_contract_address, storage_key)
             .unwrap(),
         storage_value0
@@ -515,7 +525,7 @@ fn test_worker_validate(max_resource_bounds: ResourceBoundsMapping) {
     // Verify writes were removed.
     assert_eq!(
         safe_versioned_state
-            .pin_version(tx_index)
+            .pin_version_for_testing(tx_index)
             .get_storage_at(test_contract_address, storage_key)
             .unwrap(),
         storage_value0
@@ -587,8 +597,12 @@ fn test_deploy_before_declare(
         .collect::<Vec<Transaction>>();
 
     let mut bouncer = Bouncer::new(block_context.bouncer_config.clone());
-    let worker_executor =
-        WorkerExecutor::new(safe_versioned_state, &txs, &block_context, Mutex::new(&mut bouncer));
+    let worker_executor = WorkerExecutor::new_for_testing(
+        safe_versioned_state,
+        &txs,
+        &block_context,
+        Mutex::new(&mut bouncer),
+    );
 
     // Creates 2 active tasks.
     worker_executor.scheduler.next_task();
@@ -659,8 +673,12 @@ fn test_worker_commit_phase(max_resource_bounds: ResourceBoundsMapping) {
         .collect::<Vec<Transaction>>();
 
     let mut bouncer = Bouncer::new(block_context.bouncer_config.clone());
-    let worker_executor =
-        WorkerExecutor::new(safe_versioned_state, &txs, &block_context, Mutex::new(&mut bouncer));
+    let worker_executor = WorkerExecutor::new_for_testing(
+        safe_versioned_state,
+        &txs,
+        &block_context,
+        Mutex::new(&mut bouncer),
+    );
 
     // Try to commit before any transaction is ready.
     worker_executor.commit_while_possible();
@@ -749,8 +767,12 @@ fn test_worker_commit_phase_with_halt() {
         .collect::<Vec<Transaction>>();
 
     let mut bouncer = Bouncer::new(block_context.bouncer_config.clone());
-    let worker_executor =
-        WorkerExecutor::new(safe_versioned_state, &txs, &block_context, Mutex::new(&mut bouncer));
+    let worker_executor = WorkerExecutor::new_for_testing(
+        safe_versioned_state,
+        &txs,
+        &block_context,
+        Mutex::new(&mut bouncer),
+    );
 
     // Creates 2 active tasks.
     // Creating these tasks changes the status of both transactions to `Executing`. If we skip this

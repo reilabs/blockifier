@@ -13,6 +13,7 @@ use crate::execution::syscalls::SyscallSelector;
 use crate::fee::fee_utils::get_fee_by_gas_vector;
 use crate::state::cached_state::CachedState;
 use crate::state::state_api::StateReader;
+use crate::state::visited_pcs::{VisitedPcs, VisitedPcsSet};
 use crate::test_utils::contracts::FeatureContract;
 use crate::test_utils::dict_state_reader::DictStateReader;
 use crate::test_utils::initial_test_state::test_state;
@@ -34,7 +35,7 @@ use crate::{invoke_tx_args, nonce};
 const VALIDATE_GAS_OVERHEAD: u64 = 21;
 
 struct FlavorTestInitialState {
-    pub state: CachedState<DictStateReader>,
+    pub state: CachedState<DictStateReader, VisitedPcsSet>,
     pub account_address: ContractAddress,
     pub faulty_account_address: ContractAddress,
     pub test_contract_address: ContractAddress,
@@ -64,9 +65,9 @@ fn create_flavors_test_state(
 
 /// Checks that balance of the account decreased if and only if `charge_fee` is true.
 /// Returns the new balance.
-fn check_balance<S: StateReader>(
+fn check_balance<S: StateReader, V: VisitedPcs>(
     current_balance: Felt,
-    state: &mut CachedState<S>,
+    state: &mut CachedState<S, V>,
     account_address: ContractAddress,
     chain_info: &ChainInfo,
     fee_type: &FeeType,

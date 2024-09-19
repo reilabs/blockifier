@@ -13,6 +13,7 @@ use crate::bouncer::{Bouncer, BouncerWeights};
 use crate::context::BlockContext;
 use crate::state::cached_state::CachedState;
 use crate::state::state_api::StateReader;
+use crate::state::visited_pcs::VisitedPcs;
 use crate::test_utils::contracts::FeatureContract;
 use crate::test_utils::declare::declare_tx;
 use crate::test_utils::deploy_account::deploy_account_tx;
@@ -30,8 +31,8 @@ use crate::transaction::transaction_execution::Transaction;
 use crate::transaction::transactions::L1HandlerTransaction;
 use crate::{declare_tx_args, deploy_account_tx_args, invoke_tx_args, nonce};
 
-fn tx_executor_test_body<S: StateReader>(
-    state: CachedState<S>,
+fn tx_executor_test_body<S: StateReader, V: VisitedPcs>(
+    state: CachedState<S, V>,
     block_context: BlockContext,
     tx: Transaction,
     expected_bouncer_weights: BouncerWeights,
